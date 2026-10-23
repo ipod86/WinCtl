@@ -30,6 +30,8 @@ namespace WinCtl
     public class CmdDef
     {
         public string Name, Category, Desc, Primary; public bool Dangerous, Gui; public List<ParamDef> Params = new List<ParamDef>(); public Func<Ctx, object> Run;
+        /// <summary>Example payloads (JSON object or short form) for docs and the ioBroker data point description</summary>
+        public string[] Examples = new string[0];
         public CmdDef Prim(string p) { Primary = p; return this; }
         public CmdDef Danger() { Dangerous = true; return this; }
         public CmdDef NeedsGui() { Gui = true; return this; }
@@ -39,6 +41,7 @@ namespace WinCtl
             if (Primary != null) d["primary"] = Primary;
             if (Dangerous) d["dangerous"] = true;
             if (Gui) d["needs_gui"] = true;
+            if (Examples.Length > 0) d["examples"] = Examples;
             return d;
         }
     }
@@ -51,7 +54,7 @@ namespace WinCtl
         static readonly List<CmdDef> list = new List<CmdDef>();
         static bool inited;
 
-        public static void Init() { if (inited) return; inited = true; Commands.RegisterAll(); }
+        public static void Init() { if (inited) return; inited = true; Commands.RegisterAll(); Commands.RegisterExamples(); }
         public static void Add(CmdDef d) { map[d.Name] = d; list.Add(d); }
         public static CmdDef Find(string name) { Init(); CmdDef d; map.TryGetValue(name, out d); return d; }
         public static object[] Describe() { Init(); return list.Select(d => (object)d.ToDict()).ToArray(); }
@@ -80,7 +83,13 @@ namespace WinCtl
                 P("mode","string","popup = Fenster in der Mitte, fullscreen = Vollbild, corner = Ecke (z.B. Türklingel-Kamera)").Of("popup","fullscreen","corner").Def("popup"),
                 P("seconds","number","Automatisch schließen nach X Sekunden (0 = bleibt bis Klick/close_popups)"),
                 P("monitor","integer","Monitor-Index (0 = erster, -1 = Hauptmonitor)").Def(-1),
-                P("position","string","Nur bei mode=corner").Of("top-left","top-right","bottom-left","bottom-right").Def("bottom-right"),
+                P("position","string","Lage bei mode=corner").Of("top-left","top","top-right","left","center","right","bottom-left","bottom","bottom-right").Def("bottom-right"),
+                P("size","number","Breite in % des Bildschirms (5 - 100, Seitenverhältnis bleibt; leer = automatisch: Ecke 28 %, Popup max. 70 %)"),
+                P("margin","integer","Abstand zum Bildschirmrand in Pixel (mode=corner)").Def(16),
+                P("border","integer","Rahmenbreite in Pixel (0 = kein Rahmen)").Def(2),
+                P("border_color","string","Rahmenfarbe, z.B. #ff0000").Def("#282828"),
+                P("caption_size","number","Schriftgröße der Beschriftung").Def(11),
+                P("caption_color","string","Farbe der Beschriftung").Def("#ffffff"),
                 P("caption","string","Beschriftung unter dem Inhalt"),
                 P("slot","string","Gleicher Slot ersetzt das vorherige Popup (z.B. Kamerabild aktualisieren)"),
                 P("click_close","boolean","Klick schließt das Popup"),
@@ -275,10 +284,13 @@ namespace WinCtl
             D("show_text", "display", "Blendet Text als Overlay ein (klickdurchlässig)", c => Popups.ShowText(c.A),
                 P("text", "string", "Text").Req(), P("seconds", "number", "Anzeigedauer").Def(5), P("size", "number", "Schriftgröße").Def(40), P("color", "string", "Textfarbe").Def("#ffffff"), P("bg", "string", "Hintergrund").Def("#202020"),
                 P("opacity", "number", "Deckkraft").Def(0.9), P("position", "string", "Lage").Of("top", "center", "bottom").Def("bottom"), P("monitor", "integer", "Monitor-Index").Def(-1),
-                P("bold", "boolean", "Fett").Def(true), P("font", "string", "Schriftart").Def("Segoe UI"), P("click_through", "boolean", "Mausklicks gehen durch").Def(true), P("slot", "string", "Ersetzt Overlay mit gleichem Slot")).Prim("text").NeedsGui();
+                P("bold", "boolean", "Fett").Def(true), P("font", "string", "Schriftart").Def("Segoe UI"), P("click_through", "boolean", "Mausklicks gehen durch").Def(true), P("slot", "string", "Ersetzt Overlay mit gleichem Slot"),
+                P("max_width", "number", "Maximale Breite in % des Bildschirms (Text bricht um)").Def(80), P("padding", "integer", "Innenabstand in Pixel").Def(24),
+                P("margin", "integer", "Abstand zum Rand in Pixel (top: 40, bottom: 60)")).Prim("text").NeedsGui();
             D("ask", "display", "Zeigt einen Dialog mit Buttons/Eingabefeld und liefert die Antwort im result zurück", c => Popups.Ask(c.A),
                 P("text", "string", "Fragetext").Req(), P("title", "string", "Titel"), P("buttons", "array", "Beschriftungen, z.B. [\"Ja\",\"Nein\"]").Def(new[] { "OK" }), P("input", "boolean", "Texteingabefeld anzeigen").Def(false),
-                P("default", "string", "Vorgabe im Eingabefeld"), P("password", "boolean", "Eingabe verdecken").Def(false), P("timeout", "integer", "Sekunden bis automatisch geschlossen (0 = nie)").Def(0)).Prim("text").NeedsGui();
+                P("default", "string", "Vorgabe im Eingabefeld"), P("password", "boolean", "Eingabe verdecken").Def(false), P("timeout", "integer", "Sekunden bis automatisch geschlossen (0 = nie)").Def(0),
+                P("width", "integer", "Breite des Dialogs in Pixel").Def(460), P("font_size", "number", "Schriftgröße").Def(10), P("monitor", "integer", "Monitor-Index (-1 = Hauptmonitor)").Def(-1)).Prim("text").NeedsGui();
             D("notify", "display", "Zeigt eine Windows-Benachrichtigung", c =>
             {
                 Ui.Send(() =>
@@ -372,6 +384,71 @@ namespace WinCtl
                P("click", "string", "Klickart").Of("none", "single", "double").Def("none"), P("button", "string", "Taste").Of("left", "right", "middle").Def("left"), P("wheel", "integer", "Scrollrad-Schritte (+ hoch / - runter)"));
             D("clipboard_set", "input", "Setzt den Text der Zwischenablage", c => { string t = c.A.Str("text"); Ui.Send(() => { if (t.Length == 0) Clipboard.Clear(); else Clipboard.SetText(t); }); return null; }, P("text", "string", "Text").Req()).Prim("text").NeedsGui();
             D("clipboard_get", "input", "Liest den Text der Zwischenablage", c => R("text", Ui.Send<string>(() => Clipboard.ContainsText() ? Clipboard.GetText() : ""))).NeedsGui();
+        }
+
+        static void Ex(string name, params string[] examples) { var d = CmdRegistry.Find(name); if (d != null) d.Examples = examples; }
+
+        /// <summary>Beispiele je Befehl (erster Eintrag = Kurzform bzw. einfachster Aufruf)</summary>
+        public static void RegisterExamples()
+        {
+            Ex("ping", "true");
+            Ex("get_state", "true");
+            Ex("reload_config", "true");
+            Ex("exit", "true");
+            Ex("list_commands", "true");
+            Ex("lock", "true");
+            Ex("sleep", "true");
+            Ex("hibernate", "true");
+            Ex("shutdown", "60", "{\"delay\":0,\"force\":true}");
+            Ex("restart", "30", "{\"delay\":0,\"force\":true}");
+            Ex("logoff", "true");
+            Ex("cancel_shutdown", "true");
+            Ex("monitor_off", "true");
+            Ex("monitor_on", "true");
+            Ex("keep_awake", "true", "{\"state\":true,\"display\":false}");
+            Ex("run", "notepad", "{\"path\":\"kodi\",\"args\":\"--fullscreen\",\"window\":\"maximized\"}");
+            Ex("open", "https://www.iobroker.net", "ms-settings:display");
+            Ex("kill", "notepad", "{\"pid\":1234}");
+            Ex("list_processes", "chrome");
+            Ex("list_windows", "true");
+            Ex("focus_window", "Kodi");
+            Ex("close_window", "Editor");
+            Ex("minimize_all", "true", "{\"undo\":true}");
+            Ex("empty_recycle_bin", "true");
+            Ex("shell", "Get-Date", "{\"command\":\"ipconfig\",\"shell\":\"cmd\"}");
+            Ex("volume", "30");
+            Ex("volume_change", "-10");
+            Ex("mute", "toggle", "true");
+            Ex("media", "playpause", "next");
+            Ex("speak", "Das Essen ist fertig", "{\"text\":\"Achtung\",\"voice\":\"Hedda\",\"rate\":2,\"volume\":80}");
+            Ex("list_voices", "true");
+            Ex("play_sound", "http://192.168.1.5/gong.mp3", "{\"source\":\"C:\\\\Sounds\\\\klingel.wav\",\"wait\":true}");
+            Ex("stop_sound", "true");
+            Ex("beep", "true", "{\"freq\":1200,\"ms\":500}");
+            Ex("show_image", "http://kamera/snapshot.jpg",
+               "{\"source\":\"http://kamera/snapshot.jpg\",\"mode\":\"corner\",\"position\":\"top-right\",\"size\":30,\"seconds\":10,\"caption\":\"Haustür\",\"slot\":\"klingel\"}",
+               "{\"source\":\"https://picsum.photos/1920/1080\",\"mode\":\"fullscreen\",\"seconds\":15}");
+            Ex("show_video", "http://server/video.mp4",
+               "{\"source\":\"http://server/video.mp4\",\"mode\":\"corner\",\"position\":\"bottom-left\",\"size\":25,\"muted\":true,\"loop\":true}",
+               "{\"source\":\"C:\\\\Videos\\\\intro.mp4\",\"mode\":\"fullscreen\",\"close_when_done\":true}");
+            Ex("show_web", "http://192.168.1.5:8082/vis/",
+               "{\"url\":\"http://192.168.1.5:8082/vis/\",\"mode\":\"fullscreen\"}",
+               "{\"url\":\"http://kamera/stream\",\"mode\":\"corner\",\"size\":35,\"seconds\":30,\"slot\":\"kamera\"}");
+            Ex("show_text", "Waschmaschine fertig",
+               "{\"text\":\"Alarm!\",\"size\":60,\"color\":\"#ffffff\",\"bg\":\"#c00000\",\"position\":\"center\",\"seconds\":10}");
+            Ex("ask", "Licht ausschalten?",
+               "{\"text\":\"Kinomodus starten?\",\"buttons\":[\"Ja\",\"Nein\"],\"timeout\":30}",
+               "{\"text\":\"Wie warm soll es werden?\",\"input\":true,\"default\":\"21\",\"buttons\":[\"OK\",\"Abbrechen\"]}");
+            Ex("notify", "Paket ist angekommen", "{\"text\":\"Fenster offen\",\"title\":\"Heizung\",\"icon\":\"warning\",\"seconds\":10}");
+            Ex("close_popups", "true");
+            Ex("screenshot", "true", "{\"monitor\":0,\"scale\":1,\"format\":\"png\"}");
+            Ex("set_wallpaper", "https://picsum.photos/1920/1080");
+            Ex("brightness", "60");
+            Ex("send_keys", "^c", "%{F4}", "{ENTER}");
+            Ex("type_text", "Hallo Welt");
+            Ex("mouse", "{\"x\":100,\"y\":200,\"click\":\"single\"}", "{\"wheel\":-3}");
+            Ex("clipboard_set", "Text für die Zwischenablage");
+            Ex("clipboard_get", "true");
         }
 
         // ---------------------------------------------------------------- Hilfsfunktionen

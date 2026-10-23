@@ -70,21 +70,33 @@ namespace WinCtl
 
         static void HookClick(Control c, EventHandler h) { c.Click += h; foreach (Control ch in c.Controls) HookClick(ch, h); }
 
-        static Rectangle Layout(string mode, Screen sc, Size content, string position, int extraH)
+        /// <summary>Lage und Größe: size = Breite in % des Bildschirms (Seitenverhältnis bleibt), margin = Abstand zum Rand in px</summary>
+        static Rectangle Layout(string mode, Screen sc, Size content, string position, int extraH, double sizePct, int margin)
         {
             Rectangle wa = sc.WorkingArea;
             if (mode == "fullscreen") return sc.Bounds;
             double w = Math.Max(1, content.Width), h = Math.Max(1, content.Height);
-            double maxW = wa.Width * (mode == "corner" ? 0.28 : 0.7), maxH = wa.Height * (mode == "corner" ? 0.35 : 0.7);
-            double scale = Math.Min(maxW / w, maxH / h);
-            if (mode != "corner") scale = Math.Min(scale, 1.0);
+            double scale;
+            if (sizePct > 0)
+            {
+                // fixed width in % of the screen (also enlarges small content), never higher than the screen
+                double pct = Math.Max(5, Math.Min(100, sizePct)) / 100.0;
+                scale = Math.Min(wa.Width * pct / w, (wa.Height - extraH - 2 * margin) / h);
+            }
+            else
+            {
+                double maxW = wa.Width * (mode == "corner" ? 0.28 : 0.7), maxH = wa.Height * (mode == "corner" ? 0.35 : 0.7);
+                scale = Math.Min(maxW / w, maxH / h);
+                if (mode != "corner") scale = Math.Min(scale, 1.0);
+            }
             w = Math.Round(w * scale) + 4; h = Math.Round(h * scale) + 4 + extraH;
-            int x, y, m = 16;
+            int x, y, m = Math.Max(0, margin);
+            position = (position ?? "").ToLowerInvariant();
             if (mode == "corner")
             {
-                position = (position ?? "bottom-right").ToLowerInvariant();
-                x = position.EndsWith("left") ? wa.Left + m : wa.Right - (int)w - m;
-                y = position.StartsWith("top") ? wa.Top + m : wa.Bottom - (int)h - m;
+                if (position.Length == 0) position = "bottom-right";
+                x = position.EndsWith("left") ? wa.Left + m : (position.EndsWith("right") ? wa.Right - (int)w - m : wa.Left + (wa.Width - (int)w) / 2);
+                y = position.StartsWith("top") ? wa.Top + m : (position.StartsWith("bottom") ? wa.Bottom - (int)h - m : wa.Top + (wa.Height - (int)h) / 2);
             }
             else { x = wa.Left + (wa.Width - (int)w) / 2; y = wa.Top + (wa.Height - (int)h) / 2; }
             return new Rectangle(x, y, (int)w, (int)h);
@@ -100,7 +112,8 @@ namespace WinCtl
             Label cap = null;
             if (caption.Length > 0)
             {
-                cap = new Label { Text = caption, Dock = DockStyle.Bottom, Height = 34, ForeColor = Color.White, BackColor = Color.FromArgb(30, 30, 30), TextAlign = ContentAlignment.MiddleCenter, Font = new Font("Segoe UI", 11f) };
+                float capSize = (float)Math.Max(6, Math.Min(72, a.Dbl("caption_size", 11)));
+                cap = new Label { Text = caption, Dock = DockStyle.Bottom, Height = (int)(capSize * 3.1), ForeColor = Col(a.Str("caption_color", "#ffffff"), Color.White), BackColor = Color.FromArgb(30, 30, 30), TextAlign = ContentAlignment.MiddleCenter, Font = new Font("Segoe UI", capSize) };
                 f.Controls.Add(cap);
             }
             f.Controls.Add(content); content.BringToFront();
@@ -110,9 +123,15 @@ namespace WinCtl
             f.NoActivate = !a.Bool("activate", false);
             double op = a.Dbl("opacity", 1); if (op > 0 && op < 1) f.Opacity = op;
             if (mode == "fullscreen") f.Padding = new Padding(0);
+            else
+            {
+                // frame around the content: width and colour
+                f.Padding = new Padding(Math.Max(0, Math.Min(40, a.Int("border", 2))));
+                f.BackColor = Col(a.Str("border_color", "#282828"), Color.FromArgb(40, 40, 40));
+            }
 
             Screen sc = PickScreen(a.Int("monitor", -1));
-            f.Bounds = Layout(mode, sc, contentSize, a.Str("position", "bottom-right"), cap != null ? 34 : 0);
+            f.Bounds = Layout(mode, sc, contentSize, a.Str("position", "bottom-right"), cap != null ? cap.Height : 0, a.Dbl("size", 0), a.Int("margin", 16));
 
             if (a.Bool("click_close", defClickClose)) HookClick(f, delegate { f.Close(); });
             ReplaceSlot(f.Slot);
@@ -220,16 +239,17 @@ namespace WinCtl
                 var font = new Font(a.Str("font", "Segoe UI"), (float)a.Dbl("size", 40), a.Bool("bold", true) ? FontStyle.Bold : FontStyle.Regular);
                 Screen sc = PickScreen(a.Int("monitor", -1));
                 Rectangle wa = sc.WorkingArea;
-                int maxW = (int)(wa.Width * 0.8);
+                int maxW = (int)(wa.Width * Math.Max(10, Math.Min(100, a.Dbl("max_width", 80))) / 100.0);
                 Size sz = TextRenderer.MeasureText(text, font, new Size(maxW, 0), TextFormatFlags.WordBreak);
-                int pad = Ui.S(24);
+                int pad = Ui.S(Math.Max(0, Math.Min(200, a.Int("padding", 24))));
                 var lbl = new Label { Text = text, Font = font, AutoSize = false, Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleCenter, ForeColor = Col(a.Str("color", "#ffffff"), Color.White), BackColor = Col(a.Str("bg", "#202020"), Color.FromArgb(32, 32, 32)) };
                 f.BackColor = lbl.BackColor; f.Padding = new Padding(0);
                 f.Controls.Add(lbl);
                 int w = sz.Width + pad * 2, h = sz.Height + pad * 2;
                 string pos = a.Str("position", "bottom").ToLowerInvariant();
                 int x = wa.Left + (wa.Width - w) / 2;
-                int y = pos == "top" ? wa.Top + 40 : (pos == "center" ? wa.Top + (wa.Height - h) / 2 : wa.Bottom - h - 60);
+                int mg = a.Has("margin") ? a.Int("margin") : -1;
+                int y = pos == "top" ? wa.Top + (mg >= 0 ? mg : 40) : (pos == "center" ? wa.Top + (wa.Height - h) / 2 : wa.Bottom - h - (mg >= 0 ? mg : 60));
                 f.Bounds = new Rectangle(x, y, w, h);
                 f.Opacity = Math.Max(0.1, Math.Min(1, a.Dbl("opacity", 0.9)));
                 f.Slot = a.Str("slot", "");
@@ -260,8 +280,8 @@ namespace WinCtl
 
             Ui.Send(() =>
             {
-                var f = new Form { Text = a.Str("title", "WinCtl"), FormBorderStyle = FormBorderStyle.FixedDialog, MaximizeBox = false, MinimizeBox = false, ShowInTaskbar = true, TopMost = true, StartPosition = FormStartPosition.CenterScreen, Font = new Font("Segoe UI", 10f) };
-                int W = Ui.S(460), m = Ui.S(20);
+                var f = new Form { Text = a.Str("title", "WinCtl"), FormBorderStyle = FormBorderStyle.FixedDialog, MaximizeBox = false, MinimizeBox = false, ShowInTaskbar = true, TopMost = true, StartPosition = FormStartPosition.Manual, Font = new Font("Segoe UI", (float)Math.Max(6, Math.Min(48, a.Dbl("font_size", 10)))) };
+                int W = Ui.S(Math.Max(250, Math.Min(1600, a.Int("width", 460)))), m = Ui.S(20);
                 var lbl = new Label { Text = text, AutoSize = false, Left = m, Top = m, Width = W - 2 * m };
                 Size sz = TextRenderer.MeasureText(text, f.Font, new Size(lbl.Width, 0), TextFormatFlags.WordBreak);
                 lbl.Height = Math.Max(Ui.S(22), sz.Height + Ui.S(4));
@@ -274,7 +294,7 @@ namespace WinCtl
                     f.Controls.Add(tb); y += tb.Height + Ui.S(12);
                 }
                 int n = buttons.Count, gap = Ui.S(8);
-                int bw = Math.Min(Ui.S(110), (W - 2 * m - gap * (n - 1)) / n), bh = Ui.S(32);
+                int bh = Ui.S((int)(f.Font.Size * 3.2)), bw = Math.Min(Math.Max(Ui.S(110), (int)(f.Font.Size * Ui.S(11))), (W - 2 * m - gap * (n - 1)) / n);
                 int x = (W - (n * bw + (n - 1) * gap)) / 2;
                 for (int i = 0; i < n; i++)
                 {
@@ -289,6 +309,8 @@ namespace WinCtl
                     if (i == 0) f.AcceptButton = b;
                 }
                 f.ClientSize = new Size(W, y + bh + m);
+                Rectangle wa = PickScreen(a.Int("monitor", -1)).WorkingArea;
+                f.Location = new Point(wa.Left + (wa.Width - f.Width) / 2, wa.Top + (wa.Height - f.Height) / 2);
                 f.FormClosed += delegate
                 {
                     if (result == null) result = new Dictionary<string, object> { { "button", null }, { "index", -1 }, { "closed", true } };

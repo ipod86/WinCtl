@@ -18,6 +18,9 @@ for cat in ['system','power','programs','audio','display','input']:
         out.append(f"### `{c['name']}`" + (f"  _({', '.join(flags)})_" if flags else ''))
         out.append(c['description'] + '  ')
         if c.get('primary'): out.append(f"Kurzform: Payload `<text>` entspricht `{{\"{c['primary']}\": \"<text>\"}}`.  ")
+        ex = [e for e in c.get('examples', []) if e != 'true']
+        if ex:
+            out += ['', 'Beispiele:', '', '```'] + ex + ['```']
         if c['params']:
             out += ['', '| Parameter | Typ | Pflicht | Standard | Beschreibung |', '|---|---|---|---|---|']
             for p in c['params']:
