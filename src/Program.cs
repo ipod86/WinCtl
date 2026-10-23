@@ -26,7 +26,8 @@ namespace WinCtl
                     return 0;
                 }
             }
-            if (dump) { Console.WriteLine(Json.Pretty(Json.Dump(new System.Collections.Generic.Dictionary<string, object> { { "protocol", 1 }, { "version", Version }, { "states", StateReporter.Describe() }, { "commands", CmdRegistry.Describe() } }))); return 0; }
+            // always UTF-8, independent of the console code page (otherwise umlauts become "?")
+            if (dump) { Console.OutputEncoding = new System.Text.UTF8Encoding(false); Console.WriteLine(Json.Pretty(Json.Dump(new System.Collections.Generic.Dictionary<string, object> { { "protocol", 1 }, { "version", Version }, { "states", StateReporter.Describe() }, { "commands", CmdRegistry.Describe() } }))); return 0; }
 
             bool first;
             var mtx = new Mutex(true, "WinCtl_SingleInstance_" + (cfgPath ?? "default").GetHashCode(), out first);
