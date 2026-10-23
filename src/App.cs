@@ -233,24 +233,31 @@ namespace WinCtl
         readonly App app; readonly Dictionary<int, string> ids = new Dictionary<int, string>(); readonly Dictionary<int, string> specs = new Dictionary<int, string>();
         public HotkeyManager(App a) { app = a; CreateHandle(new CreateParams()); }
 
+        /// <summary>"ctrl+alt+1" -> RegisterHotKey-Modifier und Taste (auch für die Prüfung im Einstellungsdialog)</summary>
+        public static bool TryParse(string spec, out uint mod, out Keys key)
+        {
+            mod = 0x4000; key = Keys.None; bool ok = true;
+            foreach (var tok in (spec ?? "").ToLowerInvariant().Split('+'))
+            {
+                string t = tok.Trim();
+                if (t == "ctrl" || t == "strg") mod |= 2; else if (t == "alt") mod |= 1; else if (t == "shift") mod |= 4; else if (t == "win") mod |= 8;
+                else
+                {
+                    Keys k;
+                    if (t.Length == 1 && char.IsDigit(t[0])) key = Keys.D0 + (t[0] - '0');
+                    else if (Enum.TryParse<Keys>(t, true, out k)) key = k; else ok = false;
+                }
+            }
+            return ok && key != Keys.None;
+        }
+
         public void Register(Dictionary<string, string> map)
         {
             int n = 1;
             foreach (var kv in map)
             {
-                uint mod = 0x4000; Keys key = Keys.None; bool okk = true;
-                foreach (var tok in kv.Key.ToLowerInvariant().Split('+'))
-                {
-                    string t = tok.Trim();
-                    if (t == "ctrl" || t == "strg") mod |= 2; else if (t == "alt") mod |= 1; else if (t == "shift") mod |= 4; else if (t == "win") mod |= 8;
-                    else
-                    {
-                        Keys k;
-                        if (t.Length == 1 && char.IsDigit(t[0])) key = Keys.D0 + (t[0] - '0');
-                        else if (Enum.TryParse<Keys>(t, true, out k)) key = k; else okk = false;
-                    }
-                }
-                if (!okk || key == Keys.None) { Log.Error("Hotkey '" + kv.Key + "' nicht erkannt"); continue; }
+                uint mod; Keys key; bool okk = TryParse(kv.Key, out mod, out key);
+                if (!okk) { Log.Error("Hotkey '" + kv.Key + "' nicht erkannt"); continue; }
                 if (Native.RegisterHotKey(Handle, n, mod, (uint)key)) { ids[n] = kv.Value; specs[n] = kv.Key; n++; }
                 else Log.Error("Hotkey '" + kv.Key + "' konnte nicht registriert werden (bereits belegt?)");
             }

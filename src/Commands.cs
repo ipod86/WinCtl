@@ -55,6 +55,7 @@ namespace WinCtl
         public static void Add(CmdDef d) { map[d.Name] = d; list.Add(d); }
         public static CmdDef Find(string name) { Init(); CmdDef d; map.TryGetValue(name, out d); return d; }
         public static object[] Describe() { Init(); return list.Select(d => (object)d.ToDict()).ToArray(); }
+        public static IEnumerable<CmdDef> All() { Init(); return list; }
     }
 
     public static partial class Commands

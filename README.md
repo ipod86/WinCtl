@@ -38,25 +38,34 @@ Oder automatisiert: `python tools/smoke_test.py --host BROKER --id mein-pc`
 Besonderheiten für Smart-Home-Anwendungsfälle: `slot` ersetzt ein bestehendes Popup (Kamerabild alle 5 s aktualisieren), `mode: corner` blendet z. B. die Türklingel-Kamera unten rechts ein,
 `ask` macht den PC zum Rückkanal („Soll ich das Licht dimmen?“), `keep_awake` hält Präsentations-/Kiosk-PCs wach, und `{base}/all/cmd/…` steuert alle PCs gleichzeitig.
 
-## Konfiguration (`winctl.config.json`)
+## Einstellungen
 
-Wird beim ersten Start erzeugt. Wichtige Felder:
+Alles wird im Einstellungsdialog gesetzt (öffnet sich beim ersten Start, danach Tray-Icon → „Einstellungen …“). Reiter:
+
+| Reiter | Inhalt |
+|---|---|
+| **Verbindung** | MQTT-Broker, Port, Benutzer/Passwort, TLS (optional selbstsigniertes Zertifikat), Topic-Basis, Geräte-ID (leer = Hostname) |
+| **Allgemein** | Mit Windows starten, Sendeintervall der States, Abwesenheit nach x s ohne Eingabe, selbstsignierte https-Medienquellen, Log-Datei |
+| **Programme** | Aliase für `run`/`open` (Alias → Pfad, „...“ zum Auswählen), optional beliebige Programme erlauben |
+| **Hotkeys** | Globale Tastenkürzel → Event `hotkey` an ioBroker (Kürzel ins Feld klicken und drücken) |
+| **Prozesse** | Überwachte Programme → `state/proc/<name>` (auch aus laufenden Prozessen wählbar) |
+| **Befehle** | `shell` freischalten, einzelne Befehle abschalten |
+
+Gespeichert wird in `winctl.config.json` neben der exe (ist der Ordner nicht beschreibbar: `%APPDATA%\WinCtl`). Änderungen gelten sofort nach „Speichern“.
+Die Datei kann auch von Hand bearbeitet werden (Tray → „Config-Datei öffnen“, danach „Config neu laden“ oder Befehl `reload_config`):
 
 ```jsonc
 {
   "Host": "192.168.1.5", "Port": 1883, "Username": "winctl", "Password": "…", "Tls": false,
-  "BaseTopic": "winctl", "DeviceId": "",          // leer = Hostname
-  "AllowAnyRun": false,                            // true: run/open dürfen beliebige Pfade starten
-  "AllowShell": false,                             // true: Befehl "shell" freischalten
-  "DisabledCommands": ["restart","logoff"],        // Befehle komplett abschalten
+  "BaseTopic": "winctl", "DeviceId": "",
+  "AllowAnyRun": false, "AllowShell": false,
+  "DisabledCommands": ["restart","logoff"],
   "Apps": { "notepad": "notepad.exe", "kodi": "C:\\Program Files\\Kodi\\kodi.exe" },
-  "Hotkeys": { "ctrl+alt+1": "szene_kino", "ctrl+alt+2": "alles_aus" },
-  "WatchProcesses": ["steam", "obs64"],            // -> state/proc/<name>
+  "Hotkeys": { "ctrl+alt+1": "szene_kino" },
+  "WatchProcesses": ["steam", "obs64"],
   "StateIntervalSec": 15, "IdleThresholdSec": 120
 }
 ```
-
-Änderungen: Tray-Menü → „Config neu laden“ oder Befehl `reload_config`.
 
 ## Sicherheit
 
