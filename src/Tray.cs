@@ -94,9 +94,26 @@ namespace WinCtl
             tray.Text = ("WinCtl - " + (up ? "verbunden" : "getrennt")).Substring(0, Math.Min(63, ("WinCtl - " + (up ? "verbunden" : "getrennt")).Length));
         }
 
+        SettingsForm settings;
+
+        /// <summary>Öffnet den Einstellungsdialog bzw. holt ihn nach vorn, wenn er schon offen ist</summary>
         public void ShowSettings()
         {
-            using (var f = new SettingsForm(app)) f.ShowDialog();
+            if (settings != null) { settings.WindowState = FormWindowState.Normal; settings.Activate(); return; }
+            try
+            {
+                using (settings = new SettingsForm(app))
+                {
+                    settings.Shown += delegate { settings.Activate(); };
+                    settings.ShowDialog();
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error("Einstellungen: " + ex);
+                MessageBox.Show("Der Einstellungsdialog konnte nicht geöffnet werden:\n" + ex.Message + "\n\nDetails stehen in winctl.log.", "WinCtl", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally { settings = null; }
         }
 
         static Icon MakeIcon(bool on)

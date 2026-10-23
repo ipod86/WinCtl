@@ -7,7 +7,7 @@ namespace WinCtl
 {
     static class Program
     {
-        public const string Version = "0.1.0";
+        public const string Version = "0.1.1";
 
         [STAThread]
         static int Main(string[] args)
@@ -30,8 +30,16 @@ namespace WinCtl
             if (dump) { Console.OutputEncoding = new System.Text.UTF8Encoding(false); Console.WriteLine(Json.Pretty(Json.Dump(new System.Collections.Generic.Dictionary<string, object> { { "protocol", 1 }, { "version", Version }, { "states", StateReporter.Describe() }, { "commands", CmdRegistry.Describe() } }))); return 0; }
 
             bool first;
-            var mtx = new Mutex(true, "WinCtl_SingleInstance_" + (cfgPath ?? "default").GetHashCode(), out first);
-            if (!first && !headless) { MessageBox.Show("WinCtl läuft bereits (Tray-Icon neben der Uhr).", "WinCtl", MessageBoxButtons.OK, MessageBoxIcon.Information); return 1; }
+            string instance = "WinCtl_SingleInstance_" + (cfgPath ?? "default").GetHashCode();
+            var mtx = new Mutex(true, instance, out first);
+            // second start: the running instance opens its settings (tray icons are often hidden in the overflow area)
+            var showSignal = new EventWaitHandle(false, EventResetMode.AutoReset, instance + "_show");
+            if (!first && !headless)
+            {
+                try { Native.AllowSetForegroundWindow(-1); } catch { } // the running instance may bring its window to the front
+                showSignal.Set();
+                return 1;
+            }
 
             if (!headless) { try { Native.SetProcessDPIAware(); } catch { } }
             if (cfgPath == null) cfgPath = Config.DefaultPath();
@@ -57,6 +65,8 @@ namespace WinCtl
             AppDomain.CurrentDomain.UnhandledException += (s, e) => Log.Error("Unbehandelt: " + e.ExceptionObject);
             Ui.Init();
             var ctx = new TrayContext(app);
+            var waiter = new Thread(() => { while (showSignal.WaitOne()) Ui.Post(ctx.ShowSettings); }) { IsBackground = true, Name = "show-signal" };
+            waiter.Start();
             app.Start();
             if (created || app.Cfg.Host == "localhost")
             {
