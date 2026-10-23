@@ -326,7 +326,15 @@ namespace WinCtl
                 byte[] bytes; int w, h;
                 using (var bmp = new Bitmap(r.Width, r.Height))
                 {
-                    using (var g = Graphics.FromImage(bmp)) g.CopyFromScreen(r.Left, r.Top, 0, 0, r.Size);
+                    try
+                    {
+                        using (var g = Graphics.FromImage(bmp)) g.CopyFromScreen(r.Left, r.Top, 0, 0, r.Size);
+                    }
+                    catch (System.ComponentModel.Win32Exception)
+                    {
+                        // no access to the desktop: locked, secure desktop (UAC), or a disconnected/minimised remote desktop session
+                        throw new CmdException("Kein Zugriff auf den Bildschirm - PC gesperrt, UAC-Abfrage offen oder Remotedesktop-Sitzung getrennt/minimiert");
+                    }
                     w = Math.Max(1, (int)(r.Width * scale)); h = Math.Max(1, (int)(r.Height * scale));
                     using (var small = new Bitmap(w, h))
                     {
