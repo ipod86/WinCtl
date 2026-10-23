@@ -2,6 +2,8 @@ name: build
 on:
   push: { branches: [main] , tags: ['v*'] }
   pull_request:
+permissions:
+  contents: write   # Release mit der exe anlegen
 jobs:
   build:
     runs-on: ubuntu-latest
