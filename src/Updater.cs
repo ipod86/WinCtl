@@ -45,7 +45,17 @@ namespace WinCtl
         public static Info Check()
         {
             string json;
-            using (var wc = Client()) json = wc.DownloadString(Api);
+            try
+            {
+                using (var wc = Client()) json = wc.DownloadString(Api);
+            }
+            catch (WebException ex)
+            {
+                var r = ex.Response as HttpWebResponse;
+                if (r == null || ((int)r.StatusCode != 403 && (int)r.StatusCode != 429)) throw;
+                // API rate limit (60 requests/hour per IP without login): use the redirect of the release page instead
+                return CheckViaRedirect();
+            }
             var d = Json.ParseObj(json);
             if (d == null) throw new CmdException("Antwort von GitHub nicht lesbar");
             var info = new Info
@@ -92,6 +102,28 @@ namespace WinCtl
                 }
                 catch (Exception ex) { Log.Error("Update-Prüfung: " + ex.Message); }
             }, null, 10000, 12 * 3600 * 1000);
+        }
+
+        /// <summary>github.com/.../releases/latest redirects to .../tag/vX.Y.Z (no API limit, but no notes and no checksum)</summary>
+        static Info CheckViaRedirect()
+        {
+            var req = (HttpWebRequest)WebRequest.Create(ReleasesPage + "/latest");
+            req.AllowAutoRedirect = false; req.Method = "HEAD"; req.UserAgent = "WinCtl/" + Program.Version;
+            string loc;
+            using (var resp = (HttpWebResponse)req.GetResponse()) loc = resp.Headers["Location"] ?? "";
+            int i = loc.LastIndexOf("/tag/", StringComparison.Ordinal);
+            if (i < 0) throw new CmdException("Neueste Version nicht ermittelbar");
+            string tag = Uri.UnescapeDataString(loc.Substring(i + 5));
+            var info = new Info
+            {
+                Version = tag.TrimStart('v', 'V'),
+                Notes = "",
+                Page = loc,
+                Url = ReleasesPage + "/download/" + tag + "/WinCtl.exe"
+            };
+            info.Newer = ParseVersion(info.Version) > ParseVersion(Program.Version);
+            Last = info;
+            return info;
         }
 
         static string Str(Dictionary<string, object> d, string k) { object v; return d.TryGetValue(k, out v) && v != null ? v.ToString() : null; }
