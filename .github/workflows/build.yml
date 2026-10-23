@@ -1,0 +1,21 @@
+name: build
+on:
+  push: { branches: [main] , tags: ['v*'] }
+  pull_request:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Mono installieren
+        run: sudo apt-get update && sudo apt-get install -y mono-mcs mono-runtime libmono-system-windows-forms4.0-cil libmono-system-web-extensions4.0-cil libmono-system-management4.0-cil libmono-system-drawing4.0-cil libmono-system-core4.0-cil
+      - name: Bauen
+        run: ./build.sh
+      - name: Protokoll-Doku aktuell?
+        run: mono dist/WinCtl.exe --dump-protocol > /tmp/protocol.json && diff -q /tmp/protocol.json docs/protocol.json
+      - uses: actions/upload-artifact@v4
+        with: { name: WinCtl, path: dist/WinCtl.exe }
+      - name: Release (bei Tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with: { files: dist/WinCtl.exe }
