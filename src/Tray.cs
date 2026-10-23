@@ -112,7 +112,7 @@ namespace WinCtl
             catch (Exception ex)
             {
                 Log.Error("Einstellungen: " + ex);
-                MessageBox.Show("Der Einstellungsdialog konnte nicht geöffnet werden:\n" + ex.Message + "\n\nDetails stehen in winctl.log.", "WinCtl", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Ui.Msg("Der Einstellungsdialog konnte nicht geöffnet werden:\n" + ex.Message + "\n\nDetails stehen in winctl.log.", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             finally { settings = null; }
         }

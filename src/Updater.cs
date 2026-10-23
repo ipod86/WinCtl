@@ -174,6 +174,7 @@ namespace WinCtl
         /// <summary>Tray: prüfen und nachfragen (silent = nur melden, wenn es etwas Neues gibt)</summary>
         public static void CheckInteractive(App app, bool silent)
         {
+            if (!silent && Ui.Tray != null) Ui.Tray.ShowBalloonTip(2000, "WinCtl", "Suche nach Updates ...", ToolTipIcon.None);
             ThreadPool.QueueUserWorkItem(_ =>
             {
                 Info info;
@@ -181,12 +182,12 @@ namespace WinCtl
                 catch (Exception ex)
                 {
                     Log.Error("Update-Prüfung: " + ex.Message);
-                    if (!silent) Ui.Post(() => MessageBox.Show("Update-Prüfung fehlgeschlagen:\n" + ex.Message, "WinCtl", MessageBoxButtons.OK, MessageBoxIcon.Warning));
+                    if (!silent) Ui.Post(() => Ui.Msg("Update-Prüfung fehlgeschlagen:\n" + ex.Message, MessageBoxButtons.OK, MessageBoxIcon.Warning));
                     return;
                 }
                 if (!info.Newer)
                 {
-                    if (!silent) Ui.Post(() => MessageBox.Show("WinCtl " + Program.Version + " ist aktuell.", "WinCtl", MessageBoxButtons.OK, MessageBoxIcon.Information));
+                    if (!silent) Ui.Post(() => Ui.Msg("WinCtl " + Program.Version + " ist aktuell."));
                     return;
                 }
                 Log.Info("Update verfügbar: " + info.Version);
@@ -198,8 +199,8 @@ namespace WinCtl
                 Ui.Post(() =>
                 {
                     string notes = info.Notes.Length > 1200 ? info.Notes.Substring(0, 1200) + " ..." : info.Notes;
-                    var r = MessageBox.Show("Version " + info.Version + " ist verfügbar (installiert: " + Program.Version + ").\n\n" + notes + "\n\nJetzt installieren? WinCtl startet danach neu.",
-                        "WinCtl - Update", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                    var r = Ui.Msg("Version " + info.Version + " ist verfügbar (installiert: " + Program.Version + ").\n\n" + notes + "\n\nJetzt installieren? WinCtl startet danach neu.",
+                        MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                     if (r != DialogResult.Yes) return;
                     ThreadPool.QueueUserWorkItem(__ =>
                     {
@@ -207,7 +208,7 @@ namespace WinCtl
                         catch (Exception ex)
                         {
                             Log.Error("Update: " + ex.Message);
-                            Ui.Post(() => MessageBox.Show("Update fehlgeschlagen:\n" + ex.Message, "WinCtl", MessageBoxButtons.OK, MessageBoxIcon.Error));
+                            Ui.Post(() => Ui.Msg("Update fehlgeschlagen:\n" + ex.Message, MessageBoxButtons.OK, MessageBoxIcon.Error));
                         }
                     });
                 });

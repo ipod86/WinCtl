@@ -153,6 +153,17 @@ namespace WinCtl
 
         public static void Init() { host = new Control(); var h = host.Handle; Available = true; }
 
+        /// <summary>MessageBox in front of all windows (a tray app has no window of its own, so Windows would show it in the background)</summary>
+        public static DialogResult Msg(string text, MessageBoxButtons buttons = MessageBoxButtons.OK, MessageBoxIcon icon = MessageBoxIcon.Information)
+        {
+            using (var owner = new Form { TopMost = true, ShowInTaskbar = false, FormBorderStyle = FormBorderStyle.None, StartPosition = FormStartPosition.CenterScreen, Size = new System.Drawing.Size(1, 1), Opacity = 0 })
+            {
+                owner.Show();
+                owner.Activate();
+                return MessageBox.Show(owner, text, "WinCtl", buttons, icon);
+            }
+        }
+
         public static T Send<T>(Func<T> f)
         {
             if (!Available) throw new CmdException("Diese Funktion braucht die GUI (Agent läuft im Headless-Modus)");
