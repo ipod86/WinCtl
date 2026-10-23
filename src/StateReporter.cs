@@ -51,7 +51,9 @@ namespace WinCtl
 
         public void Start()
         {
-            try { cpu = new PerformanceCounter("Processor", "% Processor Time", "_Total"); cpu.NextValue(); } catch { cpuFailed = true; }
+            // the CPU counter can take very long to initialise (perf counter cache), so never on the UI thread
+            if (cpu == null && !cpuFailed)
+                ThreadPool.QueueUserWorkItem(_ => { try { var c = new PerformanceCounter("Processor", "% Processor Time", "_Total"); c.NextValue(); cpu = c; } catch { cpuFailed = true; } });
             timer = new System.Threading.Timer(delegate { Tick(false); }, null, 1500, 2000);
         }
 
@@ -97,7 +99,7 @@ namespace WinCtl
 
             if (!slow) return;
             Safe(() => Set("idle", idle));
-            Safe(() => { if (!cpuFailed) Set("cpu", Math.Round(cpu.NextValue())); });
+            Safe(() => { var c = cpu; if (c != null) Set("cpu", Math.Round(c.NextValue())); });
             Safe(() => { double used, tot, free; Native.RamInfo(out used, out tot, out free); Set("ram", Math.Round(used)); Set("ram_free_gb", Math.Round(free, 1)); });
             Safe(() => Set("uptime_min", Native.UptimeSeconds() / 60));
             Safe(() =>

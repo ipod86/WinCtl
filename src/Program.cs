@@ -7,7 +7,7 @@ namespace WinCtl
 {
     static class Program
     {
-        public const string Version = "0.1.1";
+        public const string Version = "0.1.2";
 
         [STAThread]
         static int Main(string[] args)
@@ -37,7 +37,10 @@ namespace WinCtl
             if (!first && !headless)
             {
                 try { Native.AllowSetForegroundWindow(-1); } catch { } // the running instance may bring its window to the front
+                var ack = new EventWaitHandle(false, EventResetMode.AutoReset, instance + "_ack");
                 showSignal.Set();
+                if (!ack.WaitOne(3000))
+                    MessageBox.Show("WinCtl läuft bereits, reagiert aber nicht.\n\nBitte im Task-Manager (Reiter „Details“) WinCtl.exe beenden und neu starten.", "WinCtl", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return 1;
             }
 
@@ -65,9 +68,11 @@ namespace WinCtl
             AppDomain.CurrentDomain.UnhandledException += (s, e) => Log.Error("Unbehandelt: " + e.ExceptionObject);
             Ui.Init();
             var ctx = new TrayContext(app);
-            var waiter = new Thread(() => { while (showSignal.WaitOne()) Ui.Post(ctx.ShowSettings); }) { IsBackground = true, Name = "show-signal" };
+            var showAck = new EventWaitHandle(false, EventResetMode.AutoReset, instance + "_ack");
+            var waiter = new Thread(() => { while (showSignal.WaitOne()) { showAck.Set(); Ui.Post(ctx.ShowSettings); } }) { IsBackground = true, Name = "show-signal" };
             waiter.Start();
-            app.Start();
+            // start in the background so tray and settings appear at once, even if the network or counters are slow
+            ThreadPool.QueueUserWorkItem(_ => { try { lock (app.Lifecycle) app.Start(); } catch (Exception ex) { Log.Error("Start: " + ex); } });
             if (created || app.Cfg.Host == "localhost")
             {
                 Ui.Post(() =>

@@ -112,13 +112,14 @@ namespace WinCtl
         public void Reload()
         {
             Log.Info("Config wird neu geladen ...");
-            Stop(true);
-            LoadConfig();
-            Start();
+            lock (Lifecycle) { Stop(true); LoadConfig(); Start(); }
             var h = ConfigReloaded; if (h != null) Ui.Post(h);
         }
 
-        public void Restart() { Stop(true); Start(); var h = ConfigReloaded; if (h != null) Ui.Post(h); }
+        /// <summary>serialises Start/Restart/Reload (the first start runs in the background, saving the settings may restart at the same time)</summary>
+        public readonly object Lifecycle = new object();
+
+        public void Restart() { lock (Lifecycle) { Stop(true); Start(); } var h = ConfigReloaded; if (h != null) Ui.Post(h); }
 
         public void Exit()
         {
