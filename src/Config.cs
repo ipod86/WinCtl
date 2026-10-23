@@ -40,6 +40,7 @@ namespace WinCtl
         public Dictionary<string, string> Hotkeys = new Dictionary<string, string>();   // "ctrl+alt+1" -> "szene_kino"
         public string[] WatchProcesses = new string[0];                                  // -> state/proc/<name>
         public bool LogToFile = true;
+        public bool CheckForUpdates = true;                                              // beim Start GitHub-Releases prüfen
 
         [System.Web.Script.Serialization.ScriptIgnore]
         public string EffectiveDeviceId

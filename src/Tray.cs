@@ -72,6 +72,7 @@ namespace WinCtl
             menu.Items.Add("Config neu laden", null, delegate { app.Reload(); });
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(autostart);
+            menu.Items.Add("Nach Update suchen ...", null, delegate { Updater.CheckInteractive(app, false); });
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add("Beenden", null, delegate { app.Exit(); });
 
@@ -149,7 +150,7 @@ namespace WinCtl
         readonly App app;
         TextBox host, user, pass, baseTopic, devId;
         NumericUpDown port, interval, idle;
-        CheckBox tls, tlsInvalid, auto, anyRun, shell, mediaTls, logFile;
+        CheckBox tls, tlsInvalid, auto, anyRun, shell, mediaTls, logFile, updCheck;
         DataGridView apps, hotkeys, procs;
         CheckedListBox disabled;
         readonly List<string> cmdNames = new List<string>();
@@ -185,6 +186,7 @@ namespace WinCtl
             Hint(tp, idle, "ohne Maus/Tastatur");
             mediaTls = new CheckBox { Text = "Selbstsignierte https-Quellen für Bilder/Videos erlauben (z. B. Kameras)", Checked = c.AllowInsecureMediaTls }; row("", mediaTls);
             logFile = new CheckBox { Text = "Log zusätzlich in Datei schreiben", Checked = c.LogToFile }; row("", logFile);
+            updCheck = new CheckBox { Text = "Beim Start nach Updates suchen (Hinweis im Tray)", Checked = c.CheckForUpdates }; row("", updCheck);
 
             // --- Programme ---
             tp = Page(tabs, "Programme");
@@ -351,7 +353,7 @@ namespace WinCtl
             c.BaseTopic = string.IsNullOrWhiteSpace(baseTopic.Text) ? "winctl" : baseTopic.Text.Trim().Trim('/');
             c.DeviceId = devId.Text.Trim();
             c.StateIntervalSec = (int)interval.Value; c.IdleThresholdSec = (int)idle.Value;
-            c.AllowInsecureMediaTls = mediaTls.Checked; c.LogToFile = logFile.Checked;
+            c.AllowInsecureMediaTls = mediaTls.Checked; c.LogToFile = logFile.Checked; c.CheckForUpdates = updCheck.Checked;
             c.AllowAnyRun = anyRun.Checked; c.AllowShell = shell.Checked;
             c.Apps = appMap; c.Hotkeys = hotMap;
             c.WatchProcesses = procs.Rows.Cast<DataGridViewRow>().Where(r => !r.IsNewRow)

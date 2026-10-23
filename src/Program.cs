@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Windows.Forms;
@@ -7,7 +8,7 @@ namespace WinCtl
 {
     static class Program
     {
-        public const string Version = "0.2.0";
+        public const string Version = "0.3.0";
 
         [STAThread]
         static int Main(string[] args)
@@ -17,6 +18,11 @@ namespace WinCtl
             {
                 string a = args[i].ToLowerInvariant();
                 if (a == "--config" && i + 1 < args.Length) cfgPath = args[++i];
+                else if (a == "--wait-pid" && i + 1 < args.Length)
+                {
+                    // after an update: wait until the old instance has ended (it holds the single-instance mutex)
+                    int pid; if (int.TryParse(args[++i], out pid)) { try { Process.GetProcessById(pid).WaitForExit(15000); } catch { } }
+                }
                 else if (a == "--headless") headless = true;
                 else if (a == "--dump-protocol") dump = true;
                 else if (a == "--version") { Console.WriteLine("WinCtl " + Version); return 0; }
@@ -52,6 +58,7 @@ namespace WinCtl
             if (app.Cfg.LogToFile) Log.Init(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(cfgPath)), "winctl.log"));
             Log.Info("WinCtl " + Version + " startet (Config: " + cfgPath + ")");
             Media.CleanupTemp();
+            Updater.Cleanup();
 
             if (headless)
             {
@@ -81,6 +88,7 @@ namespace WinCtl
                     ctx.ShowSettings();
                 });
             }
+            Updater.StartPeriodic(app);
             Application.Run(ctx);
             GC.KeepAlive(mtx);
             return 0;

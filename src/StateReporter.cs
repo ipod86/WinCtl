@@ -43,6 +43,8 @@ namespace WinCtl
                 s("ip","string","text","","Lokale IPv4-Adresse"),
                 s("user","string","text","","Angemeldeter Benutzer"),
                 s("keep_awake","boolean","indicator","","keep_awake aktiv"),
+                s("update_available","boolean","indicator","","Neuere WinCtl-Version verfügbar (Prüfung beim Start und alle 12 h)"),
+                s("latest_version","string","text","","Neueste WinCtl-Version auf GitHub"),
                 s("disk/<laufwerk>_free_gb","number","value","GB","Freier Platz je Festplatte (dynamisch)"),
                 s("disk/<laufwerk>_used_percent","number","value","%","Belegung je Festplatte (dynamisch)"),
                 s("proc/<name>","boolean","indicator","","Prozess läuft (aus Config 'WatchProcesses', dynamisch)")
@@ -82,6 +84,8 @@ namespace WinCtl
         void Tick(bool full)
         {
             bool slow = full || (tick++ % Math.Max(1, app.Cfg.StateIntervalSec / 2) == 0);
+            var upd = Updater.Last;
+            if (upd != null) { Safe(() => Set("update_available", upd.Newer)); Safe(() => Set("latest_version", upd.Version)); }
             int idle = 0;
 
             Safe(() => Set("locked", app.Locked));

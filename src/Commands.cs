@@ -131,6 +131,19 @@ namespace WinCtl
             D("reload_config", "system", "Config-Datei neu einlesen und neu verbinden", c => { ThreadPool.QueueUserWorkItem(_ => { Thread.Sleep(300); c.App.Reload(); }); return R("reloading", true); });
             D("exit", "system", "Beendet den Agent", c => { ThreadPool.QueueUserWorkItem(_ => { Thread.Sleep(300); c.App.Exit(); }); return R("exiting", true); }).Danger();
             D("list_commands", "system", "Gibt die Liste aller Befehle zurück", c => CmdRegistry.Describe());
+            D("check_update", "system", "Prüft, ob es eine neuere WinCtl-Version gibt (GitHub-Releases)", c =>
+            {
+                var u = Updater.Check();
+                return R("installed", Program.Version, "latest", u.Version, "update_available", u.Newer, "url", u.Page);
+            });
+            D("update", "system", "Installiert die neueste WinCtl-Version und startet den Agent neu", c =>
+            {
+                var u = Updater.Check();
+                if (!u.Newer) return R("updated", false, "installed", Program.Version, "latest", u.Version);
+                // answer first, then install (the agent restarts)
+                ThreadPool.QueueUserWorkItem(_ => { Thread.Sleep(500); try { Updater.Install(c.App, u); } catch (Exception ex) { Log.Error("Update: " + ex.Message); } });
+                return R("updated", true, "from", Program.Version, "to", u.Version);
+            }); // only installs the official release of ipod86/WinCtl, so it gets a button in ioBroker
 
             // ======================================================== ENERGIE
             D("lock", "power", "Sperrt den Bildschirm (Win+L)", c => { Native.LockWorkStation(); return null; });
@@ -396,6 +409,8 @@ namespace WinCtl
             Ex("reload_config", "true");
             Ex("exit", "true");
             Ex("list_commands", "true");
+            Ex("check_update", "true");
+            Ex("update", "true");
             Ex("lock", "true");
             Ex("sleep", "true");
             Ex("hibernate", "true");

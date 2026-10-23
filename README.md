@@ -67,6 +67,12 @@ Die Datei kann auch von Hand bearbeitet werden (Tray → „Config-Datei öffnen
 }
 ```
 
+## Update
+
+Tray-Icon → **„Nach Update suchen …“** prüft die [Releases](https://github.com/ipod86/WinCtl/releases), zeigt die Neuerungen und installiert auf Wunsch die neue Version (Download, Prüfsumme, Tausch der exe, Neustart).
+Zusätzlich prüft WinCtl beim Start und alle 12 Stunden (abschaltbar in den Einstellungen → „Allgemein“) und meldet das Ergebnis als States `update_available` / `latest_version`. Aus ioBroker startet der Befehl `update` die Installation.
+Voraussetzung: Die exe liegt in einem beschreibbaren Ordner (z. B. `C:\Tools\WinCtl`, nicht `C:\Program Files`).
+
 ## Sicherheit
 
 Wer auf `…/cmd/#` schreiben darf, steuert den PC. Deshalb:
