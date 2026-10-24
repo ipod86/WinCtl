@@ -6,13 +6,20 @@ Eine einzelne `WinCtl.exe` (~140 KB), kein Installer, keine Zusatz-Runtime (läu
 * Tray-Icon (grün = verbunden, rot = getrennt), Einstellungsdialog beim ersten Start, Autostart per Klick
 * **Selbstbeschreibend:** der Agent veröffentlicht alle Befehle, Parameter und States als JSON-Manifest - der Adapter braucht keine hartcodierten Listen
 * Läuft im Benutzerkontext (kein Dienst, kein Admin) - deshalb funktionieren Popups, Vollbild, Screenshots und Tastatursteuerung
-* 49 Befehle, 20 States, Events, Broadcast an alle PCs - siehe [`docs/COMMANDS.md`](docs/COMMANDS.md)
+* 51 Befehle, 26 States, Events, Broadcast an alle PCs - siehe [`docs/COMMANDS.md`](docs/COMMANDS.md)
 
 ## Schnellstart
 
-1. `WinCtl.exe` starten (z. B. nach `C:\Tools\WinCtl\` kopiert; die Config liegt daneben, ist der Ordner nicht beschreibbar unter `%APPDATA%\WinCtl`).
-2. Im Einstellungsdialog MQTT-Broker, Benutzer/Passwort und ggf. Geräte-ID eintragen → Speichern. Das Tray-Icon wird grün.
+1. `WinCtl.exe` aus den [Releases](https://github.com/ipod86/WinCtl/releases/latest) herunterladen und starten (z. B. nach `C:\Tools\WinCtl\` kopiert; die Config liegt daneben, ist der Ordner nicht beschreibbar unter `%APPDATA%\WinCtl`).
+2. Im Einstellungsdialog MQTT-Broker, Benutzer/Passwort und ggf. Geräte-ID eintragen → Speichern. Das Tray-Icon wird grün (welchen Broker → siehe unten).
 3. In ioBroker (Adapter desktop-control) erscheint der PC als Gerät. Zum Testen z. B. in `cmd.speak` „Hallo“ schreiben.
+
+### Welcher MQTT-Broker?
+
+WinCtl braucht einen MQTT-Broker als Zwischenstück zu ioBroker. Zwei Möglichkeiten:
+
+* **Eingebauter Broker des Adapters (empfohlen):** Der desktop-control-Adapter bringt selbst einen Broker mit. In WinCtl die **IP-Adresse des ioBroker-Servers**, Port **1886** und – falls im Adapter gesetzt – Benutzer/Passwort eintragen. Sonst muss nichts installiert werden.
+* **Vorhandener Broker:** Läuft schon Mosquitto oder der ioBroker-MQTT-Adapter, im desktop-control-Adapter „Vorhandener Broker“ wählen und in Adapter **und** WinCtl denselben Broker (Adresse, Port, meist 1883, Anmeldung) eintragen. Sinnvoll, wenn ACLs/TLS gebraucht werden oder andere Programme mitlesen sollen.
 
 ## Was kann er?
 
@@ -60,8 +67,17 @@ Die Datei kann auch von Hand bearbeitet werden (Tray → „Config-Datei öffnen
 
 ## Update
 
-Tray-Icon → **„Nach Update suchen …“** prüft die [Releases](https://github.com/ipod86/WinCtl/releases), zeigt die Neuerungen und installiert auf Wunsch die neue Version (Download, Prüfsumme, Tausch der exe, Neustart).
-Zusätzlich prüft WinCtl beim Start und alle 12 Stunden (abschaltbar in den Einstellungen → „Allgemein“) und meldet das Ergebnis als States `update_available` / `latest_version`. Aus ioBroker startet der Befehl `update` die Installation.
+WinCtl prüft beim Start und danach alle 12 Stunden die [Releases](https://github.com/ipod86/WinCtl/releases) (abschaltbar in den Einstellungen → „Allgemein“). Es **installiert nicht von selbst**, sondern meldet nur:
+
+* `update_available` – `true`, wenn es eine neuere Version gibt
+* `latest_version` – die neueste Version auf GitHub (die installierte steht im Manifest bzw. in ioBroker unter `info.version`)
+
+Installiert wird auf einem dieser Wege:
+
+* **Am PC:** Tray-Icon → **„Nach Update suchen …“** – zeigt „aktuell“ oder die Neuerungen und fragt, ob installiert werden soll.
+* **Aus ioBroker:** Knopf `cmd.update` (prüft sofort: `cmd.check_update`). Per Skript lässt sich das automatisieren, z. B. sobald `update_available` auf `true` geht.
+
+Ablauf: neue exe herunterladen → Prüfsumme (SHA-256 aus dem Release) prüfen → alte exe als `WinCtl.exe.old` beiseitelegen → neue einsetzen → neu starten. Nach ein paar Sekunden ist der PC wieder online. Die Einstellungen bleiben erhalten.
 Voraussetzung: Die exe liegt in einem beschreibbaren Ordner (z. B. `C:\Tools\WinCtl`, nicht `C:\Program Files`).
 
 ## Sicherheit
@@ -75,7 +91,7 @@ Wer auf `…/cmd/#` schreiben darf, steuert den PC. Deshalb:
 
 ## Bauen
 
-Der Agent ist reines C# gegen .NET Framework 4.x und wird mit dem Mono-Compiler erzeugt (kein NuGet nötig, MQTT-Client ist eingebaut):
+Der Agent ist reines C# gegen .NET Framework 4.x und wird mit dem Mono-Compiler erzeugt (MQTT-Client ist eingebaut). `build.sh` lädt einmalig die .NET-4.6.2-Referenzassemblies von NuGet (Prüfsumme geprüft, Cache in `.refs/`), damit keine Mono-only-APIs in die exe rutschen:
 
 ```bash
 sudo apt install mono-mcs libmono-system-windows-forms4.0-cil libmono-system-web-extensions4.0-cil libmono-system-management4.0-cil
@@ -88,6 +104,7 @@ Der GitHub-Workflow baut bei jedem Push und hängt die exe bei Tags `v*` an ein 
 ## Bekannte Grenzen
 
 * `show_video`/`show_web` nutzen das eingebaute IE11-Control: mp4/H.264, WebM nicht garantiert, moderne Web-Apps teils eingeschränkt. Upgrade-Pfad: WebView2.
+* `screenshot` geht nicht bei gesperrtem Bildschirm, offener UAC-Abfrage oder getrennter/minimierter Remotedesktop-Sitzung (dann gibt es kein Bild zum Aufnehmen).
 * `brightness` funktioniert nur bei internen Laptop-Displays (WMI), nicht bei externen Monitoren.
 * Aktionen, die eine Benutzersitzung brauchen, gehen nicht bei gesperrtem Bildschirm/ohne angemeldeten Benutzer (`lock`, `monitor_*`, `shutdown` schon).
 * Bildschirmtastatur-/UAC-Dialoge (sicherer Desktop) sind für `send_keys`/`mouse` unerreichbar - Windows-Sicherheitsfeature.
