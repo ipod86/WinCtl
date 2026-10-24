@@ -2,55 +2,72 @@
 """Erzeugt die Icons von WinCtl aus dem Logo von ioBroker.desktop-control (gleiches Motiv wie tools/make_logo.py im Adapter-Repo).
 
 Aufruf (im WinCtl-Repo):  python3 tools/make_icon.py
-Benötigt: pip install pillow
+Benötigt: pip install pillow cairosvg
 Schreibt: assets/winctl.ico (exe-Icon, 16-256 px), assets/tray.png (64x64, Grundlage fürs Tray-Icon, wird in die exe eingebettet)
           und assets/winctl.png (512x512, README)
 """
-import os
-from PIL import Image, ImageDraw
-
-BLUE, DEEP, WHITE, YELLOW = (51, 153, 204), (15, 39, 64), (255, 255, 255), (255, 196, 61)
-S = 2048  # Supersampling, danach runterskaliert
+import io, math, os
+import cairosvg
+from PIL import Image
 
 
-def px(v):
-    return round(v * S)
+DARK, BAR = "#164476", "#3399CC"          # Originalfarben der ioBroker-Marke (Ring / Balken)
+THEMES = {
+    "tief": dict(bg=DARK, screen=BAR,  wave="#D6EFFB", frame="#FFFFFF"),   # dunkle Kachel, helles Display
+    "hell": dict(bg=BAR,  screen=DARK, wave="#8FD0F2", frame="#FFFFFF"),   # helle Kachel, dunkles Display
+}
 
+def pt(cx, cy, r, deg):                      # Winkel in Grad, 0 = rechts, 270 = oben (SVG-Koordinaten)
+    a = math.radians(deg); return cx + r * math.cos(a), cy + r * math.sin(a)
 
-def rrect(d, box, radius, fill):
-    d.rounded_rectangle([px(c) for c in box], radius=px(radius), fill=fill)
+def arc(cx, cy, r, a0, a1):
+    x0, y0 = pt(cx, cy, r, a0); x1, y1 = pt(cx, cy, r, a1)
+    return f"M{x0:.1f} {y0:.1f} A{r} {r} 0 0 1 {x1:.1f} {y1:.1f}"
 
+def svg(theme="tief"):
+    t = THEMES[theme]
+    # --- Monitor (gleichmäßiger Rahmen, mittiger Fuß)
+    mx, my, mw, mh, bez = 270, 205, 610, 420, 34
+    mcx = mx + mw / 2
+    # --- ioBroker-Scheibe
+    dx, dy, dr, halo = 292, 648, 165, 16
+    lr = 139                                   # Radius der ioBroker-Marke in der Scheibe
+    # --- Funkwellen (Mitte nahe der Scheibe, strahlen Richtung Display)
+    waves = "".join(f'<path d="{arc(dx, dy, dr + halo + 30 + i * 46, 293, 333)}"/>' for i in range(3))
+    # --- Mauszeiger + Klick-Strahlen
+    tip = (690, 358); k = 0.85
+    cur = [(0,0),(0,205),(47,160),(78,235),(112,220),(81,148),(142,148)]
+    cur_pts = " ".join(f"{tip[0]+x*k:.1f},{tip[1]+y*k:.1f}" for x, y in cur)
+    rays = "".join('<path d="M{:.1f} {:.1f} L{:.1f} {:.1f}"/>'.format(*pt(*tip, 44, a), *pt(*tip, 80, a)) for a in (197, 238, 279))
+    return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="512" height="512" role="img" aria-label="ioBroker.desktop-control">
+  <defs><clipPath id="open"><path d="M-2 -2H-.223V-.45H.223V-2H2V2H-2Z"/></clipPath></defs>
+  <rect x="20" y="20" width="960" height="960" rx="240" fill="{t['bg']}"/>
+  <g transform="translate(500 500) scale(1.07) translate(-503 -509)">
+    <rect x="{mx}" y="{my}" width="{mw}" height="{mh}" rx="56" fill="{t['frame']}"/>
+    <rect x="{mx+bez}" y="{my+bez}" width="{mw-2*bez}" height="{mh-2*bez}" rx="26" fill="{t['screen']}"/>
+    <polygon points="{mcx-45},{my+mh-2} {mcx+45},{my+mh-2} {mcx+70},{my+mh+75} {mcx-70},{my+mh+75}" fill="{t['frame']}"/>
+    <rect x="{mcx-130}" y="{my+mh+67}" width="260" height="50" rx="25" fill="{t['frame']}"/>
+    <g fill="none" stroke="{t['wave']}" stroke-width="25" stroke-linecap="round">{waves}</g>
+    <g fill="none" stroke="{t['wave']}" stroke-width="22" stroke-linecap="round">{rays}</g>
+    <polygon points="{cur_pts}" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="8" stroke-linejoin="round"/>
+    <circle cx="{dx}" cy="{dy}" r="{dr+halo}" fill="{t['bg']}"/>
+    <circle cx="{dx}" cy="{dy}" r="{dr}" fill="#FFFFFF"/>
+    <g transform="translate({dx} {dy}) scale({lr})">
+      <circle r=".8725" fill="none" stroke="{DARK}" stroke-width=".255" clip-path="url(#open)"/>
+      <rect x="-.149" y="-1" width=".298" height=".255" rx=".02" fill="{BAR}"/>
+      <rect x="-.149" y="-.654" width=".298" height="1.308" rx=".03" fill="{BAR}"/>
+    </g>
+  </g>
+</svg>
+'''
 
-def draw():
-    img = Image.new("RGBA", (S, S), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-
-    # Hintergrund-Kachel (Squircle) in ioBroker-Blau
-    rrect(d, (0.02, 0.02, 0.98, 0.98), 0.24, BLUE)
-
-    # 2x2-Kacheln = der "Bildschirm": drei weiß, eine gelb als Akzent
-    x0, y0, w, h, gap = 0.17, 0.20, 0.31, 0.21, 0.04
-    tiles = [(x0, y0), (x0 + w + gap, y0), (x0, y0 + h + gap), (x0 + w + gap, y0 + h + gap)]
-    for (tx, ty), color in zip(tiles, [WHITE, WHITE, WHITE, YELLOW]):
-        rrect(d, (tx, ty, tx + w, ty + h), 0.04, color)
-
-    # Standfuß als Pille
-    rrect(d, (0.38, 0.76, 0.62, 0.81), 0.025, WHITE)
-
-    # Mauszeiger auf der gelben Kachel: weißer Rand (Halo) + dunkelblaue Füllung
-    ox, oy = tiles[3][0] + w * 0.42, tiles[3][1] + h * 0.30
-    arrow = [(0, 0), (0, .205), (.047, .16), (.078, .235), (.112, .220), (.081, .148), (.142, .148)]
-    pts = [(px(ox + x), px(oy + y)) for x, y in arrow]
-    d.polygon(pts, fill=WHITE)
-    d.line(pts + [pts[0]], fill=WHITE, width=px(0.03), joint="curve")
-    d.polygon(pts, fill=DEEP)
-    return img
+def render(size):
+    return Image.open(io.BytesIO(cairosvg.svg2png(bytestring=svg().encode(), output_width=size, output_height=size))).convert("RGBA")
 
 
 if __name__ == "__main__":
-    logo = draw()
     os.makedirs("assets", exist_ok=True)
-    logo.resize((256, 256), Image.LANCZOS).save("assets/winctl.ico", sizes=[(s, s) for s in (16, 20, 24, 32, 40, 48, 64, 128, 256)])
-    logo.resize((64, 64), Image.LANCZOS).save("assets/tray.png")
-    logo.resize((512, 512), Image.LANCZOS).save("assets/winctl.png")
+    render(256).save("assets/winctl.ico", sizes=[(s, s) for s in (16, 20, 24, 32, 40, 48, 64, 128, 256)])
+    render(64).save("assets/tray.png")
+    render(512).save("assets/winctl.png")
     print("geschrieben: assets/winctl.ico, assets/tray.png, assets/winctl.png")

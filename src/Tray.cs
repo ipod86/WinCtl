@@ -117,7 +117,7 @@ namespace WinCtl
             finally { settings = null; }
         }
 
-        /// <summary>Logo (embedded assets/tray.png) with a status dot bottom left: green = connected, red = disconnected</summary>
+        /// <summary>Logo (embedded assets/tray.png) with a status dot bottom right: green = connected, red = disconnected</summary>
         static Icon MakeIcon(bool on)
         {
             using (var bmp = new Bitmap(32, 32))
@@ -129,7 +129,7 @@ namespace WinCtl
                     using (var s = typeof(TrayContext).Assembly.GetManifestResourceStream("tray.png"))
                         if (s != null) using (var logo = Image.FromStream(s)) g.DrawImage(logo, 0, 0, 32, 32);
                     using (var br = new SolidBrush(on ? Color.FromArgb(40, 200, 90) : Color.FromArgb(220, 60, 60)))
-                    { g.FillEllipse(Brushes.White, 0, 19, 13, 13); g.FillEllipse(br, 2, 21, 9, 9); }
+                    { g.FillEllipse(Brushes.White, 19, 19, 13, 13); g.FillEllipse(br, 21, 21, 9, 9); }
                 }
                 return Icon.FromHandle(bmp.GetHicon());
             }
