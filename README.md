@@ -12,16 +12,7 @@ Eine einzelne `WinCtl.exe` (~140 KB), kein Installer, keine Zusatz-Runtime (läu
 
 1. `WinCtl.exe` starten (z. B. nach `C:\Tools\WinCtl\` kopiert; die Config liegt daneben, ist der Ordner nicht beschreibbar unter `%APPDATA%\WinCtl`).
 2. Im Einstellungsdialog MQTT-Broker, Benutzer/Passwort und ggf. Geräte-ID eintragen → Speichern. Das Tray-Icon wird grün.
-3. Testen:
-
-```bash
-mosquitto_sub -h BROKER -t 'winctl/#' -v &
-mosquitto_pub -h BROKER -t 'winctl/MEIN-PC/cmd/speak' -m 'Hallo aus ioBroker'
-mosquitto_pub -h BROKER -t 'winctl/MEIN-PC/cmd/show_image' -m '{"source":"https://picsum.photos/800/450","mode":"corner","seconds":8,"caption":"Test"}'
-mosquitto_pub -h BROKER -t 'winctl/MEIN-PC/cmd/ask' -m '{"text":"Kino starten?","buttons":["Ja","Nein"],"timeout":30,"id":"q1"}'   # Antwort kommt auf .../result
-```
-
-Oder automatisiert: `python tools/smoke_test.py --host BROKER --id mein-pc`
+3. In ioBroker (Adapter desktop-control) erscheint der PC als Gerät. Zum Testen z. B. in `cmd.speak` „Hallo“ schreiben.
 
 ## Was kann er?
 
