@@ -43,6 +43,10 @@ namespace WinCtl
                 s("ip","string","text","","Lokale IPv4-Adresse"),
                 s("user","string","text","","Angemeldeter Benutzer"),
                 s("keep_awake","boolean","indicator","","keep_awake aktiv"),
+                s("webcam_in_use","boolean","indicator","","Kamera wird gerade benutzt (z.B. Videokonferenz)"),
+                s("webcam_app","string","text","","Programm(e), die die Kamera benutzen"),
+                s("mic_in_use","boolean","indicator","","Mikrofon wird gerade benutzt"),
+                s("mic_app","string","text","","Programm(e), die das Mikrofon benutzen"),
                 s("update_available","boolean","indicator","","Neuere WinCtl-Version verfügbar (Prüfung beim Start und alle 12 h)"),
                 s("latest_version","string","text","","Neueste WinCtl-Version auf GitHub"),
                 s("disk/<laufwerk>_free_gb","number","value","GB","Freier Platz je Festplatte (dynamisch)"),
@@ -99,6 +103,8 @@ namespace WinCtl
                 Set("active_process", pn);
             });
             Safe(() => { Set("volume", Audio.GetVolume()); Set("muted", Audio.GetMute()); });
+            Safe(() => { var cam = Privacy.InUse("webcam"); Set("webcam_in_use", cam.Count > 0); Set("webcam_app", string.Join(", ", cam.ToArray())); });
+            Safe(() => { var mic = Privacy.InUse("microphone"); Set("mic_in_use", mic.Count > 0); Set("mic_app", string.Join(", ", mic.ToArray())); });
             Safe(() => { foreach (var n in app.Cfg.WatchProcesses) { string name = n.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? n.Substring(0, n.Length - 4) : n; Set("proc/" + name.ToLowerInvariant(), Process.GetProcessesByName(name).Length > 0); } });
 
             if (!slow) return;
@@ -124,6 +130,33 @@ namespace WinCtl
                     Set("disk/" + k + "_used_percent", Math.Round(100.0 * (d.TotalSize - d.AvailableFreeSpace) / d.TotalSize));
                 }
             });
+        }
+
+        /// <summary>MAC address ("AA:BB:CC:DD:EE:FF") and IPv4 broadcast address of the network card with the default gateway (for Wake-on-LAN)</summary>
+        public static void LocalMac(out string mac, out string broadcast)
+        {
+            mac = ""; broadcast = "";
+            try
+            {
+                foreach (var ni in NetworkInterface.GetAllNetworkInterfaces())
+                {
+                    if (ni.OperationalStatus != OperationalStatus.Up || ni.NetworkInterfaceType == NetworkInterfaceType.Loopback) continue;
+                    var props = ni.GetIPProperties();
+                    if (props.GatewayAddresses.Count == 0) continue;
+                    foreach (var ua in props.UnicastAddresses)
+                    {
+                        if (ua.Address.AddressFamily != AddressFamily.InterNetwork || ua.IPv4Mask == null) continue;
+                        byte[] b = ni.GetPhysicalAddress().GetAddressBytes();
+                        if (b.Length != 6) continue;
+                        mac = BitConverter.ToString(b).Replace('-', ':');
+                        byte[] ip = ua.Address.GetAddressBytes(), mask = ua.IPv4Mask.GetAddressBytes(), bc = new byte[4];
+                        for (int i = 0; i < 4; i++) bc[i] = (byte)(ip[i] | ~mask[i]);
+                        broadcast = new System.Net.IPAddress(bc).ToString();
+                        return;
+                    }
+                }
+            }
+            catch { }
         }
 
         public static string LocalIp()

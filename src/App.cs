@@ -205,6 +205,7 @@ namespace WinCtl
         // ------------------------------------------------------------------ Info-Manifest
         public Dictionary<string, object> Info()
         {
+            string mac, broadcast; StateReporter.LocalMac(out mac, out broadcast);
             return new Dictionary<string, object>
             {
                 { "protocol", 1 },
@@ -216,6 +217,8 @@ namespace WinCtl
                 { "user", Environment.UserName },
                 { "os", Environment.OSVersion.VersionString },
                 { "ip", StateReporter.LocalIp() },
+                { "mac", mac },
+                { "broadcast", broadcast },
                 { "started", started.ToString("o") },
                 { "topics", new Dictionary<string, object> {
                     { "online", T("online") }, { "info", T("info") }, { "state", T("state/<key>") }, { "event", T("event/<name>") },

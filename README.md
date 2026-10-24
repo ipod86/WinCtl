@@ -32,7 +32,7 @@ Oder automatisiert: `python tools/smoke_test.py --host BROKER --id mein-pc`
 | **Audio** | `volume`, `volume_change`, `mute`, `media` (Play/Pause/Next/…), `speak` (TTS mit Stimmenwahl), `list_voices`, `play_sound` (mp3/wav, URL oder Datei), `stop_sound`, `beep` |
 | **Energie** | `lock`, `sleep`, `hibernate`, `shutdown`, `restart`, `logoff`, `cancel_shutdown`, `monitor_off`, `monitor_on`, `keep_awake` |
 | **Eingabe** | `send_keys`, `type_text`, `mouse` (bewegen/klicken/scrollen), `clipboard_get`, `clipboard_set` |
-| **Überwachung** | States: Sperrstatus, Anwesenheit (`user_present`), Idle-Zeit, aktives Fenster/Prozess, Lautstärke, CPU, RAM, Uptime, Akku, Laufwerke, überwachte Prozesse (`WatchProcesses`) |
+| **Überwachung** | States: Sperrstatus, Anwesenheit (`user_present`), Idle-Zeit, aktives Fenster/Prozess, Lautstärke, CPU, RAM, Uptime, Akku, Laufwerke, überwachte Prozesse (`WatchProcesses`), **Kamera/Mikrofon in Benutzung** (`webcam_in_use`, `mic_in_use` + Programmname – z. B. für eine „On Air“-Lampe) |
 | **Events** | `lock`, `unlock`, `logon`, `logoff`, `suspend`, `resume`, `remote_*` und **globale Hotkeys** (`Hotkeys` in der Config → Event `hotkey`; der PC wird zur Szenen-Tastatur) |
 
 Besonderheiten für Smart-Home-Anwendungsfälle: `slot` ersetzt ein bestehendes Popup (Kamerabild alle 5 s aktualisieren), `mode: corner` blendet z. B. die Türklingel-Kamera unten rechts ein,
