@@ -146,14 +146,15 @@ namespace WinCtl
             }); // only installs the official release of ipod86/WinCtl, so it gets a button in ioBroker
 
             // ======================================================== ENERGIE
+            // shutdown/restart/logoff are normal smart home actions (can be switched off via DisabledCommands), so not "dangerous"
             D("lock", "power", "Sperrt den Bildschirm (Win+L)", c => { Native.LockWorkStation(); return null; });
             D("sleep", "power", "Standby", c => { ThreadPool.QueueUserWorkItem(_ => { Thread.Sleep(500); Native.SetSuspendState(false, true, false); }); return null; });
             D("hibernate", "power", "Ruhezustand", c => { ThreadPool.QueueUserWorkItem(_ => { Thread.Sleep(500); Native.SetSuspendState(true, true, false); }); return null; });
             D("shutdown", "power", "Fährt den PC herunter", c => { Exec("shutdown.exe", "/s /t " + Math.Max(0, c.A.Int("delay", 10)) + (c.A.Bool("force", false) ? " /f" : "")); return R("delay", c.A.Int("delay", 10)); },
-                P("delay", "integer", "Verzögerung in Sekunden").Def(10), P("force", "boolean", "Programme zwangsweise schließen").Def(false)).Prim("delay").Danger();
+                P("delay", "integer", "Verzögerung in Sekunden").Def(10), P("force", "boolean", "Programme zwangsweise schließen").Def(false)).Prim("delay");
             D("restart", "power", "Startet den PC neu", c => { Exec("shutdown.exe", "/r /t " + Math.Max(0, c.A.Int("delay", 10)) + (c.A.Bool("force", false) ? " /f" : "")); return R("delay", c.A.Int("delay", 10)); },
-                P("delay", "integer", "Verzögerung in Sekunden").Def(10), P("force", "boolean", "Programme zwangsweise schließen").Def(false)).Prim("delay").Danger();
-            D("logoff", "power", "Meldet den Benutzer ab", c => { Exec("shutdown.exe", "/l"); return null; }).Danger();
+                P("delay", "integer", "Verzögerung in Sekunden").Def(10), P("force", "boolean", "Programme zwangsweise schließen").Def(false)).Prim("delay");
+            D("logoff", "power", "Meldet den Benutzer ab", c => { Exec("shutdown.exe", "/l"); return null; });
             D("cancel_shutdown", "power", "Bricht einen geplanten Shutdown/Neustart ab", c => { Exec("shutdown.exe", "/a"); return null; });
             D("monitor_off", "power", "Schaltet die Monitore aus", c => { Native.MonitorPower(false); return null; });
             D("monitor_on", "power", "Weckt die Monitore auf", c => { Native.MonitorPower(true); return null; });
