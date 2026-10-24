@@ -150,6 +150,9 @@ namespace WinCtl
         static Control host;
         public static bool Available;
         public static NotifyIcon Tray;
+        static System.Drawing.Icon appIcon;
+        /// <summary>Icon of the exe (assets/winctl.ico) for windows, null if it cannot be read</summary>
+        public static System.Drawing.Icon AppIcon { get { if (appIcon == null) try { appIcon = System.Drawing.Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { } return appIcon; } }
 
         public static void Init() { host = new Control(); var h = host.Handle; Available = true; }
 

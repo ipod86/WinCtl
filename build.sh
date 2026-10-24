@@ -20,7 +20,7 @@ LIB="$REFS/build/.NETFramework/v4.6.2"
 
 ICON=""
 [ -f assets/winctl.ico ] && ICON="-win32icon:assets/winctl.ico"
-mcs -target:winexe -out:dist/WinCtl.exe -optimize+ -debug- $ICON -win32manifest:assets/winctl.manifest \
+mcs -target:winexe -out:dist/WinCtl.exe -optimize+ -debug- $ICON -resource:assets/tray.png,tray.png -win32manifest:assets/winctl.manifest \
   -nostdlib -noconfig -lib:"$LIB" -r:mscorlib.dll \
   -r:System.dll -r:System.Core.dll -r:System.Drawing.dll -r:System.Windows.Forms.dll \
   -r:System.Web.dll -r:System.Web.Extensions.dll -r:System.Management.dll \

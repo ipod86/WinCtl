@@ -117,6 +117,7 @@ namespace WinCtl
             finally { settings = null; }
         }
 
+        /// <summary>Logo (embedded assets/tray.png) with a status dot bottom left: green = connected, red = disconnected</summary>
         static Icon MakeIcon(bool on)
         {
             using (var bmp = new Bitmap(32, 32))
@@ -124,14 +125,11 @@ namespace WinCtl
                 using (var g = Graphics.FromImage(bmp))
                 {
                     g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-                    g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
-                    using (var br = new System.Drawing.Drawing2D.LinearGradientBrush(new Rectangle(0, 0, 32, 32), Color.FromArgb(45, 125, 255), Color.FromArgb(20, 60, 170), 90f))
-                        g.FillEllipse(br, 1, 1, 30, 30);
-                    using (var f = new Font("Segoe UI", 15f, FontStyle.Bold, GraphicsUnit.Pixel))
-                    using (var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
-                        g.DrawString("W", f, Brushes.White, new RectangleF(0, 1, 32, 32), sf);
+                    g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                    using (var s = typeof(TrayContext).Assembly.GetManifestResourceStream("tray.png"))
+                        if (s != null) using (var logo = Image.FromStream(s)) g.DrawImage(logo, 0, 0, 32, 32);
                     using (var br = new SolidBrush(on ? Color.FromArgb(40, 200, 90) : Color.FromArgb(220, 60, 60)))
-                    { g.FillEllipse(Brushes.White, 19, 19, 13, 13); g.FillEllipse(br, 21, 21, 9, 9); }
+                    { g.FillEllipse(Brushes.White, 0, 19, 13, 13); g.FillEllipse(br, 2, 21, 9, 9); }
                 }
                 return Icon.FromHandle(bmp.GetHicon());
             }
@@ -158,7 +156,7 @@ namespace WinCtl
         public SettingsForm(App a)
         {
             app = a; var c = a.Cfg;
-            Text = "WinCtl - Einstellungen"; Font = new Font("Segoe UI", 9.5f); FormBorderStyle = FormBorderStyle.FixedDialog;
+            Text = "WinCtl - Einstellungen"; Icon = Ui.AppIcon; Font = new Font("Segoe UI", 9.5f); FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false; MinimizeBox = false; StartPosition = FormStartPosition.CenterScreen; TopMost = true;
             int W = Ui.S(600), H = Ui.S(470);
             ClientSize = new Size(W, H);
@@ -373,7 +371,7 @@ namespace WinCtl
         readonly Action<string> handler;
         public LogForm()
         {
-            Text = "WinCtl - Log"; Size = new Size(Ui.S(900), Ui.S(500)); StartPosition = FormStartPosition.CenterScreen;
+            Text = "WinCtl - Log"; Icon = Ui.AppIcon; Size = new Size(Ui.S(900), Ui.S(500)); StartPosition = FormStartPosition.CenterScreen;
             Controls.Add(tb); tb.Text = Log.All(); tb.SelectionStart = tb.TextLength; tb.ScrollToCaret();
             handler = line => Ui.Post(() => { if (!IsDisposed) { tb.AppendText(line + Environment.NewLine); } });
             Log.Added += handler;

@@ -1,9 +1,11 @@
+<img src="assets/winctl.png" alt="Logo" width="128">
+
 # WinCtl
 
 Schlanker Windows-Agent, der einen PC über **MQTT** fernsteuerbar macht - gebaut als Gegenstück für einen ioBroker-Adapter.
 Eine einzelne `WinCtl.exe` (~140 KB), kein Installer, keine Zusatz-Runtime (läuft auf dem in Windows 10/11 enthaltenen .NET Framework 4.x).
 
-* Tray-Icon (grün = verbunden, rot = getrennt), Einstellungsdialog beim ersten Start, Autostart per Klick
+* Tray-Icon mit Statuspunkt unten links (grün = verbunden, rot = getrennt), Einstellungsdialog beim ersten Start, Autostart per Klick
 * **Selbstbeschreibend:** der Agent veröffentlicht alle Befehle, Parameter und States als JSON-Manifest - der Adapter braucht keine hartcodierten Listen
 * Läuft im Benutzerkontext (kein Dienst, kein Admin) - deshalb funktionieren Popups, Vollbild, Screenshots und Tastatursteuerung
 * 51 Befehle, 26 States, Events, Broadcast an alle PCs - siehe [`docs/COMMANDS.md`](docs/COMMANDS.md)
