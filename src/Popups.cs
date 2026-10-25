@@ -169,7 +169,7 @@ namespace WinCtl
         }
 
         // ------------------------------------------------------------ Video
-        public static object ShowVideo(Args a)
+        public static object ShowVideo(Args a, App app)
         {
             string src = a.Str("source", a.Str("url", a.Str("path", "")));
             if (src.Length == 0) throw new CmdException("Parameter 'source' (Pfad oder URL) fehlt");
@@ -190,19 +190,32 @@ namespace WinCtl
             string tmp = Path.Combine(Media.TempDir(), "v_" + Guid.NewGuid().ToString("N") + ".html");
             File.WriteAllText(tmp, html.ToString(), new UTF8Encoding(true));
             bool autoClose = a.Bool("close_when_done", true) && !a.Bool("loop", false);
+            string engine = a.Str("engine", "auto").ToLowerInvariant();
+            string edgeVersion = engine == "ie" ? null : WebEngine.Version();
+            if (engine == "edge" && edgeVersion == null) throw new CmdException("WebView2-Runtime ist nicht installiert - ohne 'engine' wird IE11 genutzt");
+            bool edge = edgeVersion != null;
+            bool insecure = app.Cfg.AllowInsecureMediaTls;
 
             return Ui.Send<object>(() =>
             {
                 var f = new PopupBase { TempFile = tmp };
-                var wb = NewBrowser();
-                wb.DocumentTitleChanged += delegate
+                Action<string> onTitle = title =>
                 {
-                    if (wb.DocumentTitle == "WINCTL_ENDED" && autoClose) f.Close();
-                    else if (wb.DocumentTitle == "WINCTL_ERROR") { Log.Error("Video konnte nicht abgespielt werden: " + src); f.Close(); }
+                    if (title == "WINCTL_ENDED" && autoClose) f.Close();
+                    else if (title == "WINCTL_ERROR") { Log.Error("Video konnte nicht abgespielt werden: " + src); f.Close(); }
                 };
-                Present(f, wb, a, mode, new Size(1280, 720), 0, a.Bool("click_close", true));
-                wb.Navigate(new Uri(tmp));
-                return new Dictionary<string, object> { { "mode", mode } };
+                Control view;
+                if (edge) view = Edge.Create(new Uri(tmp).AbsoluteUri, 1, insecure, null, onTitle);
+                else
+                {
+                    var wb = NewBrowser(); view = wb;
+                    wb.DocumentTitleChanged += delegate { onTitle(wb.DocumentTitle); };
+                }
+                Present(f, view, a, mode, new Size(1280, 720), 0, a.Bool("click_close", true));
+                if (!edge) ((WebBrowser)view).Navigate(new Uri(tmp));
+                var r = new Dictionary<string, object> { { "mode", mode }, { "engine", edge ? "edge" : "ie" } };
+                if (edge) r["engine_version"] = edgeVersion;
+                return r;
             });
         }
 

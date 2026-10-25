@@ -300,9 +300,10 @@ namespace WinCtl
             // ======================================================== ANZEIGE
             D("show_image", "display", "Zeigt ein Bild als Popup, Vollbild oder Ecken-Einblendung (Pfad, URL oder Base64)", c => Popups.ShowImage(c.A),
                 new[] { P("source", "string", "Pfad, http(s)-URL oder data:-URI").Req(), P("base64", "string", "Alternativ: Base64-Daten"), P("fit", "string", "Skalierung").Of("contain", "stretch", "center").Def("contain") }.Concat(PopupParams()).ToArray()).Prim("source").NeedsGui();
-            D("show_video", "display", "Spielt ein Video ab (Datei oder URL, mp4/H.264 empfohlen)", c => Popups.ShowVideo(c.A),
+            D("show_video", "display", "Spielt ein Video ab (Datei oder URL; mit Edge mp4/H.264, WebM, Ogg, je nach Windows-Codecs auch HEVC)", c => Popups.ShowVideo(c.A, c.App),
                 new[] { P("source", "string", "Pfad oder URL").Req(), P("loop", "boolean", "Endlosschleife").Def(false), P("muted", "boolean", "Ohne Ton").Def(false), P("volume", "number", "0 - 1").Def(1),
-                        P("controls", "boolean", "Bedienelemente anzeigen").Def(false), P("close_when_done", "boolean", "Nach Ende schließen").Def(true) }.Concat(PopupParams()).ToArray()).Prim("source").NeedsGui();
+                        P("controls", "boolean", "Bedienelemente anzeigen").Def(false), P("close_when_done", "boolean", "Nach Ende schließen").Def(true),
+                        P("engine", "string", "Player: auto = Edge (WebView2), sonst IE11; edge = nur Edge; ie = altes IE11").Of("auto", "edge", "ie").Def("auto") }.Concat(PopupParams()).ToArray()).Prim("source").NeedsGui();
             D("show_web", "display", "Zeigt eine Webseite (z.B. vis, Lovelace, Kamera-Stream) mit Edge/Chromium in einem Fenster oder als Kiosk-Vollbild, auch mehrere im Wechsel (Diashow)", c => Popups.ShowWeb(c.A, c.App),
                 new[] { P("url", "string", "Adresse (oder 'urls' für eine Diashow)"), P("urls", "array", "Diashow: mehrere Adressen, wechseln nach 'interval' Sekunden"),
                         P("interval", "number", "Diashow: Sekunden je Seite").Def(30), P("zoom", "number", "Zoom, z. B. 1.25 = 125 % (nur Edge)").Def(1),

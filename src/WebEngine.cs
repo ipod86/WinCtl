@@ -84,8 +84,8 @@ namespace WinCtl
             return Microsoft.Web.WebView2.Core.CoreWebView2Environment.GetAvailableBrowserVersionString();
         }
 
-        /// <summary>WebView2 control that shows url; onUrl gets every page that finished loading.</summary>
-        public static Control Create(string url, double zoom, bool insecureTls, Action<string> onUrl)
+        /// <summary>WebView2 control that shows url; onUrl gets every page that finished loading, onTitle every document title.</summary>
+        public static Control Create(string url, double zoom, bool insecureTls, Action<string> onUrl, Action<string> onTitle = null)
         {
             var wv = new Microsoft.Web.WebView2.WinForms.WebView2
             {
@@ -93,7 +93,8 @@ namespace WinCtl
                 CreationProperties = new Microsoft.Web.WebView2.WinForms.CoreWebView2CreationProperties
                 {
                     UserDataFolder = WebEngine.DataDir(insecureTls ? "webview2-data-insecure" : "webview2-data"),
-                    AdditionalBrowserArguments = insecureTls ? "--ignore-certificate-errors" : null
+                    // videos/dashboards start with sound without a click (default Chromium policy needs a user gesture)
+                    AdditionalBrowserArguments = "--autoplay-policy=no-user-gesture-required" + (insecureTls ? " --ignore-certificate-errors" : "")
                 },
                 DefaultBackgroundColor = System.Drawing.Color.Black
             };
@@ -104,6 +105,7 @@ namespace WinCtl
                 wv.CoreWebView2.Settings.AreDevToolsEnabled = false;
                 wv.CoreWebView2.Settings.IsStatusBarEnabled = false;
                 wv.CoreWebView2.NavigationCompleted += delegate { if (onUrl != null) onUrl(wv.Source.AbsoluteUri); };
+                if (onTitle != null) wv.CoreWebView2.DocumentTitleChanged += delegate { onTitle(wv.CoreWebView2.DocumentTitle); };
                 wv.ZoomFactor = zoom;
             };
             wv.Source = new Uri(url);
