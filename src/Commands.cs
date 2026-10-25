@@ -37,7 +37,7 @@ namespace WinCtl
         public CmdDef NeedsGui() { Gui = true; return this; }
         public Dictionary<string, object> ToDict()
         {
-            var d = new Dictionary<string, object> { { "name", Name }, { "category", Category }, { "description", Desc }, { "params", Params.Select(p => p.ToDict()).ToArray() } };
+            var d = new Dictionary<string, object> { { "name", Name }, { "category", Category }, { "description", EnText.Get(EnText.Commands, Name, Desc) }, { "description_de", Desc }, { "params", Params.Select(p => p.ToDict()).ToArray() } };
             if (Primary != null) d["primary"] = Primary;
             if (Dangerous) d["dangerous"] = true;
             if (Gui) d["needs_gui"] = true;

@@ -16,7 +16,7 @@ for cat in ['system','power','programs','audio','display','input']:
         if c.get('dangerous'): flags.append('⚠ sicherheitsrelevant')
         if c.get('needs_gui'): flags.append('braucht GUI-Sitzung')
         out.append(f"### `{c['name']}`" + (f"  _({', '.join(flags)})_" if flags else ''))
-        out.append(c['description'] + '  ')
+        out.append(c.get('description_de', c['description']) + '  ')
         if c.get('primary'): out.append(f"Kurzform: Payload `<text>` entspricht `{{\"{c['primary']}\": \"<text>\"}}`.  ")
         ex = [e for e in c.get('examples', []) if e != 'true']
         if ex:
@@ -29,6 +29,6 @@ for cat in ['system','power','programs','audio','display','input']:
                 out.append(f"| `{p['name']}` | {p['type']} | {'ja' if p['required'] else ''} | {dv} | {desc} |")
         out.append('')
 out += ['## States', '', '| Topic (`{base}/{id}/state/…`) | Typ | Einheit | Rolle | Beschreibung |', '|---|---|---|---|---|']
-for s in d['states']: out.append(f"| `{s['name']}` | {s['type']} | {s['unit']} | `{s['role']}` | {s['description']} |")
+for s in d['states']: out.append(f"| `{s['name']}` | {s['type']} | {s['unit']} | `{s['role']}` | {s.get('description_de', s['description'])} |")
 open(os.path.join(root, 'docs', 'COMMANDS.md'), 'w', encoding='utf-8').write('\n'.join(out) + '\n')
 print('docs/COMMANDS.md geschrieben')

@@ -24,7 +24,7 @@ namespace WinCtl
         public static object[] Describe()
         {
             Func<string, string, string, string, string, object> s = (name, type, role, unit, desc) =>
-                new Dictionary<string, object> { { "name", name }, { "type", type }, { "role", role }, { "unit", unit }, { "description", desc } };
+                new Dictionary<string, object> { { "name", name }, { "type", type }, { "role", role }, { "unit", unit }, { "description", EnText.Get(EnText.States, name, desc) }, { "description_de", desc } };
             return new[] {
                 s("locked","boolean","indicator","","Bildschirm gesperrt"),
                 s("user_present","boolean","indicator","","Benutzer aktiv (nicht gesperrt und Eingabe innerhalb der Idle-Schwelle)"),
