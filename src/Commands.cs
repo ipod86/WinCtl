@@ -377,7 +377,7 @@ namespace WinCtl
             {
                 string f = Media.ToLocalFile(c.A.Str("source"), c.A.Str("base64", ""), ".jpg");
                 string keep = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WinCtl"); Directory.CreateDirectory(keep);
-                string dst = Path.Combine(keep, "wallpaper" + Path.GetExtension(f)); if (!string.Equals(f, dst, StringComparison.OrdinalIgnoreCase)) File.Copy(f, dst, true);
+                string dst = Path.Combine(keep, "wallpaper" + Path.GetExtension(f)); if (!string.Equals(Path.GetFullPath(f), Path.GetFullPath(dst), StringComparison.OrdinalIgnoreCase)) File.Copy(f, dst, true); // "C:/..." and "C:\..." are the same file
                 if (!Native.SystemParametersInfo(20, 0, dst, 3)) throw new CmdException("Windows hat das Hintergrundbild abgelehnt");
                 return null;
             }, P("source", "string", "Pfad oder URL").Req()).Prim("source");
