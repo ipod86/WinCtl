@@ -303,9 +303,10 @@ namespace WinCtl
             D("show_video", "display", "Spielt ein Video ab (Datei oder URL, mp4/H.264 empfohlen)", c => Popups.ShowVideo(c.A),
                 new[] { P("source", "string", "Pfad oder URL").Req(), P("loop", "boolean", "Endlosschleife").Def(false), P("muted", "boolean", "Ohne Ton").Def(false), P("volume", "number", "0 - 1").Def(1),
                         P("controls", "boolean", "Bedienelemente anzeigen").Def(false), P("close_when_done", "boolean", "Nach Ende schließen").Def(true) }.Concat(PopupParams()).ToArray()).Prim("source").NeedsGui();
-            D("show_web", "display", "Zeigt eine Webseite (z.B. Dashboard, Kamera-Stream) in einem Fenster oder als Kiosk-Vollbild, auch mehrere im Wechsel (Diashow)", c => Popups.ShowWeb(c.A),
+            D("show_web", "display", "Zeigt eine Webseite (z.B. vis, Lovelace, Kamera-Stream) mit Edge/Chromium in einem Fenster oder als Kiosk-Vollbild, auch mehrere im Wechsel (Diashow)", c => Popups.ShowWeb(c.A, c.App),
                 new[] { P("url", "string", "Adresse (oder 'urls' für eine Diashow)"), P("urls", "array", "Diashow: mehrere Adressen, wechseln nach 'interval' Sekunden"),
-                        P("interval", "number", "Diashow: Sekunden je Seite").Def(30) }.Concat(PopupParams()).ToArray()).Prim("url").NeedsGui();
+                        P("interval", "number", "Diashow: Sekunden je Seite").Def(30), P("zoom", "number", "Zoom, z. B. 1.25 = 125 % (nur Edge)").Def(1),
+                        P("engine", "string", "Browser: auto = Edge (WebView2), sonst IE11; edge = nur Edge; ie = altes IE11").Of("auto", "edge", "ie").Def("auto") }.Concat(PopupParams()).ToArray()).Prim("url").NeedsGui();
             D("show_text", "display", "Blendet Text als Overlay ein (klickdurchlässig)", c => Popups.ShowText(c.A),
                 P("text", "string", "Text").Req(), P("seconds", "number", "Anzeigedauer").Def(5), P("size", "number", "Schriftgröße").Def(40), P("color", "string", "Textfarbe").Def("#ffffff"), P("bg", "string", "Hintergrund").Def("#202020"),
                 P("opacity", "number", "Deckkraft").Def(0.9), P("position", "string", "Lage").Of("top", "center", "bottom").Def("bottom"), P("monitor", "integer", "Monitor-Index").Def(-1),

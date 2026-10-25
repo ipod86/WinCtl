@@ -3,7 +3,7 @@
 # WinCtl
 
 Schlanker Windows-Agent, der einen PC über **MQTT** fernsteuerbar macht - gebaut als Gegenstück für einen ioBroker-Adapter.
-Eine einzelne `WinCtl.exe` (~140 KB), kein Installer, keine Zusatz-Runtime (läuft auf dem in Windows 10/11 enthaltenen .NET Framework 4.x).
+Eine einzelne `WinCtl.exe` (~600 KB), kein Installer, keine Zusatz-Runtime (läuft auf dem in Windows 10/11 enthaltenen .NET Framework 4.x; für Webseiten nutzt sie den in Windows enthaltenen Edge-Browser über WebView2).
 
 * Tray-Icon mit Statuspunkt unten rechts (grün = verbunden, rot = getrennt), Einstellungsdialog beim ersten Start, Autostart per Klick
 * **Selbstbeschreibend:** der Agent veröffentlicht alle Befehle, Parameter und States als JSON-Manifest - der Adapter braucht keine hartcodierten Listen
@@ -28,7 +28,7 @@ WinCtl braucht einen MQTT-Broker als Zwischenstück zu ioBroker. Zwei Möglichke
 | Bereich | Befehle |
 |---|---|
 | **Programme** | `run` (Alias oder Pfad, mit Args/Arbeitsverzeichnis/versteckt/Admin/warten), `open`, `kill`, `list_processes`, `list_windows`, `focus_window`, `close_window`, `minimize_all`, `shell` (PowerShell/cmd, mit Ausgabe), `empty_recycle_bin` |
-| **Anzeige** | `show_image` (Popup / Vollbild / Ecke, Datei·URL·Base64, auch GIF), `show_video` (mp4, Loop, Ton), `show_web` (Dashboard/Kiosk, auch als Diashow mehrerer Seiten), `show_text` (klickdurchlässiges Overlay), `ask` (Dialog mit Buttons/Eingabefeld, **Antwort zurück an ioBroker**), `notify`, `close_popups`, `screenshot` (ans MQTT zurück), `set_wallpaper`, `brightness` (Laptop) |
+| **Anzeige** | `show_image` (Popup / Vollbild / Ecke, Datei·URL·Base64, auch GIF), `show_video` (mp4, Loop, Ton), `show_web` (vis/Lovelace/Dashboard als Kiosk mit Edge/Chromium, Zoom, Diashow mehrerer Seiten, aktuelle Seite als State `web_url`), `show_text` (klickdurchlässiges Overlay), `ask` (Dialog mit Buttons/Eingabefeld, **Antwort zurück an ioBroker**), `notify`, `close_popups`, `screenshot` (ans MQTT zurück), `set_wallpaper`, `brightness` (Laptop) |
 | **Audio** | `volume`, `volume_change`, `mute`, `media` (Play/Pause/Next/…), `speak` (TTS mit Stimmenwahl), `list_voices`, `play_sound` (mp3/wav, URL oder Datei), `stop_sound`, `beep` |
 | **Energie** | `lock`, `sleep`, `hibernate`, `shutdown`, `restart`, `logoff`, `cancel_shutdown`, `monitor_off`, `monitor_on`, `screensaver`, `keep_awake` |
 | **Eingabe** | `start_menu`, `send_keys`, `type_text`, `mouse` (bewegen/klicken/scrollen), `clipboard_get`, `clipboard_set` |
@@ -93,7 +93,7 @@ Wer auf `…/cmd/#` schreiben darf, steuert den PC. Deshalb:
 
 ## Bauen
 
-Der Agent ist reines C# gegen .NET Framework 4.x und wird mit dem Mono-Compiler erzeugt (MQTT-Client ist eingebaut). `build.sh` lädt einmalig die .NET-4.6.2-Referenzassemblies von NuGet (Prüfsumme geprüft, Cache in `.refs/`), damit keine Mono-only-APIs in die exe rutschen:
+Der Agent ist reines C# gegen .NET Framework 4.x und wird mit dem Mono-Compiler erzeugt (MQTT-Client ist eingebaut). `build.sh` lädt einmalig von NuGet (Prüfsumme geprüft, Cache in `.refs/`) die .NET-4.6.2-Referenzassemblies, damit keine Mono-only-APIs in die exe rutschen, und das Microsoft-Edge-WebView2-SDK, dessen DLLs gzip-komprimiert in die exe eingebettet werden:
 
 ```bash
 sudo apt install mono-mcs libmono-system-windows-forms4.0-cil libmono-system-web-extensions4.0-cil libmono-system-management4.0-cil
@@ -105,7 +105,8 @@ Der GitHub-Workflow baut bei jedem Push und hängt die exe bei Tags `v*` an ein 
 
 ## Bekannte Grenzen
 
-* `show_video`/`show_web` nutzen das eingebaute IE11-Control: mp4/H.264, WebM nicht garantiert, moderne Web-Apps teils eingeschränkt. Upgrade-Pfad: WebView2.
+* `show_web` nutzt **Edge WebView2** (Chromium). Die Runtime ist in Windows 11 und aktuellen Windows-10-Versionen enthalten; fehlt sie, fällt `show_web` auf das alte IE11-Control zurück (Ergebnis `engine: "ie"`, Runtime-Download: https://go.microsoft.com/fwlink/p/?LinkId=2124703). Die WebView2-DLLs stecken in der exe und werden beim ersten Gebrauch nach `%LOCALAPPDATA%\WinCtl\webview2` ausgepackt.
+* `show_video` nutzt noch das IE11-Control: zuverlässig nur mp4/H.264.
 * `screenshot` geht nicht bei gesperrtem Bildschirm, offener UAC-Abfrage oder getrennter/minimierter Remotedesktop-Sitzung (dann gibt es kein Bild zum Aufnehmen).
 * `brightness` funktioniert nur bei internen Laptop-Displays (WMI), nicht bei externen Monitoren.
 * Aktionen, die eine Benutzersitzung brauchen, gehen nicht bei gesperrtem Bildschirm/ohne angemeldeten Benutzer (`lock`, `monitor_*`, `shutdown` schon).

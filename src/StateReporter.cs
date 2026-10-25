@@ -47,6 +47,7 @@ namespace WinCtl
                 s("webcam_app","string","text","","Programm(e), die die Kamera benutzen"),
                 s("mic_in_use","boolean","indicator","","Mikrofon wird gerade benutzt"),
                 s("mic_app","string","text","","Programm(e), die das Mikrofon benutzen"),
+                s("web_url","string","text.url","","Seite, die show_web gerade anzeigt (leer = keine)"),
                 s("update_available","boolean","indicator","","Neuere WinCtl-Version verfügbar (Prüfung beim Start und alle 12 h)"),
                 s("latest_version","string","text","","Neueste WinCtl-Version auf GitHub"),
                 s("disk/<laufwerk>_free_gb","number","value","GB","Freier Platz je Festplatte (dynamisch)"),

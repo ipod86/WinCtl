@@ -207,7 +207,7 @@ namespace WinCtl
         }
 
         // ------------------------------------------------------------ Webseite
-        public static object ShowWeb(Args a)
+        public static object ShowWeb(Args a, App app)
         {
             var urls = new List<string>();
             if (a.Raw("urls") != null) urls.AddRange(a.List("urls"));
@@ -216,23 +216,39 @@ namespace WinCtl
             urls = urls.Select(u => u.Trim()).Where(u => u.Length > 0).Select(u => u.Contains("://") ? u : "http://" + u).ToList();
             if (urls.Count == 0) throw new CmdException("Parameter 'url' (oder 'urls' für eine Diashow) fehlt");
             int interval = (int)Math.Max(3, a.Dbl("interval", 30));
+            double zoom = Math.Max(0.25, Math.Min(5, a.Dbl("zoom", 1)));
             string mode = a.Str("mode", "popup").ToLowerInvariant();
+            string engine = a.Str("engine", "auto").ToLowerInvariant();
+            string edgeVersion = engine == "ie" ? null : WebEngine.Version();
+            if (engine == "edge" && edgeVersion == null) throw new CmdException("WebView2-Runtime ist nicht installiert (https://go.microsoft.com/fwlink/p/?LinkId=2124703) - ohne 'engine' wird IE11 genutzt");
+            bool edge = edgeVersion != null;
+            bool insecure = app.Cfg.AllowInsecureMediaTls;
+            Action<string> onUrl = u => app.Reporter.SetNow("web_url", u);
             return Ui.Send<object>(() =>
             {
                 var f = new PopupBase();
-                var wb = NewBrowser();
-                Present(f, wb, a, mode, new Size(1280, 720), 0, a.Bool("click_close", false));
-                wb.Navigate(urls[0]);
+                Control view; Action<string> go;
+                if (edge) { view = Edge.Create(urls[0], zoom, insecure, onUrl); go = u => Edge.Navigate(view, u); }
+                else
+                {
+                    var wb = NewBrowser(); view = wb; go = u => wb.Navigate(u);
+                    wb.DocumentCompleted += (s, e) => { if (e.Url == wb.Url) onUrl(wb.Url.AbsoluteUri); };
+                }
+                f.FormClosed += delegate { onUrl(""); };
+                Present(f, view, a, mode, new Size(1280, 720), 0, a.Bool("click_close", false));
+                if (!edge) go(urls[0]);
                 if (urls.Count > 1)
                 {
                     // slideshow: next page every 'interval' seconds, endlessly until the popup is closed
                     int i = 0;
                     var t = new System.Windows.Forms.Timer { Interval = interval * 1000 };
-                    t.Tick += delegate { i = (i + 1) % urls.Count; wb.Navigate(urls[i]); };
+                    t.Tick += delegate { i = (i + 1) % urls.Count; go(urls[i]); };
                     f.FormClosed += delegate { t.Dispose(); };
                     t.Start();
                 }
-                return new Dictionary<string, object> { { "mode", mode }, { "pages", urls.Count } };
+                var r = new Dictionary<string, object> { { "mode", mode }, { "pages", urls.Count }, { "engine", edge ? "edge" : "ie" } };
+                if (edge) r["engine_version"] = edgeVersion;
+                return r;
             });
         }
 
