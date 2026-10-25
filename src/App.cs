@@ -43,9 +43,10 @@ namespace WinCtl
 
         public string T(string suffix) { return Base + "/" + Id + "/" + suffix; }
 
-        public void Pub(string suffix, string payload, bool retain)
+        /// <returns>false when the message could not be sent (not connected)</returns>
+        public bool Pub(string suffix, string payload, bool retain)
         {
-            var m = Mqtt; if (m != null) m.Publish(T(suffix), payload, retain);
+            var m = Mqtt; return m != null && m.Publish(T(suffix), payload, retain);
         }
         public void PubBytes(string suffix, byte[] data, bool retain)
         {

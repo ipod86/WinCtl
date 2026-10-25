@@ -72,16 +72,18 @@ namespace WinCtl
             ThreadPool.QueueUserWorkItem(_ => Tick(true));
         }
 
-        public void SetNow(string key, object v) { Set(key, v); }
+        /// <summary>Publishes a value right after a command changed it (always sent, even if unchanged)</summary>
+        public void SetNow(string key, object v) { Set(key, v, true); }
 
-        void Set(string key, object v)
+        void Set(string key, object v, bool force = false)
         {
             string s;
             if (v is bool) s = (bool)v ? "true" : "false";
             else if (v is double) s = ((double)v).ToString("0.#", CultureInfo.InvariantCulture);
             else s = Convert.ToString(v, CultureInfo.InvariantCulture) ?? "";
-            lock (l) { string o; if (last.TryGetValue(key, out o) && o == s) return; last[key] = s; }
-            app.Pub("state/" + key, s, true);
+            lock (l) { string o; if (!force && last.TryGetValue(key, out o) && o == s) return; last[key] = s; }
+            // not sent (e.g. reconnecting): forget the value, so the next tick sends it again
+            if (!app.Pub("state/" + key, s, true)) lock (l) { string o; if (last.TryGetValue(key, out o) && o == s) last.Remove(key); }
         }
 
         static void Safe(Action a) { try { a(); } catch { } }
