@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
@@ -208,17 +209,30 @@ namespace WinCtl
         // ------------------------------------------------------------ Webseite
         public static object ShowWeb(Args a)
         {
-            string url = a.Str("url", a.Str("source", ""));
-            if (url.Length == 0) throw new CmdException("Parameter 'url' fehlt");
-            if (!url.Contains("://")) url = "http://" + url;
+            var urls = new List<string>();
+            if (a.Raw("urls") != null) urls.AddRange(a.List("urls"));
+            string one = a.Str("url", a.Str("source", ""));
+            if (one.Length > 0) urls.Insert(0, one);
+            urls = urls.Select(u => u.Trim()).Where(u => u.Length > 0).Select(u => u.Contains("://") ? u : "http://" + u).ToList();
+            if (urls.Count == 0) throw new CmdException("Parameter 'url' (oder 'urls' für eine Diashow) fehlt");
+            int interval = (int)Math.Max(3, a.Dbl("interval", 30));
             string mode = a.Str("mode", "popup").ToLowerInvariant();
             return Ui.Send<object>(() =>
             {
                 var f = new PopupBase();
                 var wb = NewBrowser();
                 Present(f, wb, a, mode, new Size(1280, 720), 0, a.Bool("click_close", false));
-                wb.Navigate(url);
-                return new Dictionary<string, object> { { "mode", mode } };
+                wb.Navigate(urls[0]);
+                if (urls.Count > 1)
+                {
+                    // slideshow: next page every 'interval' seconds, endlessly until the popup is closed
+                    int i = 0;
+                    var t = new System.Windows.Forms.Timer { Interval = interval * 1000 };
+                    t.Tick += delegate { i = (i + 1) % urls.Count; wb.Navigate(urls[i]); };
+                    f.FormClosed += delegate { t.Dispose(); };
+                    t.Start();
+                }
+                return new Dictionary<string, object> { { "mode", mode }, { "pages", urls.Count } };
             });
         }
 

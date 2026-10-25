@@ -8,7 +8,7 @@ namespace WinCtl
 {
     static class Program
     {
-        public const string Version = "0.4.2";
+        public const string Version = "0.5.0";
 
         [STAThread]
         static int Main(string[] args)

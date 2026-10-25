@@ -8,7 +8,7 @@ Eine einzelne `WinCtl.exe` (~140 KB), kein Installer, keine Zusatz-Runtime (läu
 * Tray-Icon mit Statuspunkt unten rechts (grün = verbunden, rot = getrennt), Einstellungsdialog beim ersten Start, Autostart per Klick
 * **Selbstbeschreibend:** der Agent veröffentlicht alle Befehle, Parameter und States als JSON-Manifest - der Adapter braucht keine hartcodierten Listen
 * Läuft im Benutzerkontext (kein Dienst, kein Admin) - deshalb funktionieren Popups, Vollbild, Screenshots und Tastatursteuerung
-* 51 Befehle, 26 States, Events, Broadcast an alle PCs - siehe [`docs/COMMANDS.md`](docs/COMMANDS.md)
+* 53 Befehle, 26 States, Events, Broadcast an alle PCs - siehe [`docs/COMMANDS.md`](docs/COMMANDS.md)
 
 ## Schnellstart
 
@@ -28,10 +28,10 @@ WinCtl braucht einen MQTT-Broker als Zwischenstück zu ioBroker. Zwei Möglichke
 | Bereich | Befehle |
 |---|---|
 | **Programme** | `run` (Alias oder Pfad, mit Args/Arbeitsverzeichnis/versteckt/Admin/warten), `open`, `kill`, `list_processes`, `list_windows`, `focus_window`, `close_window`, `minimize_all`, `shell` (PowerShell/cmd, mit Ausgabe), `empty_recycle_bin` |
-| **Anzeige** | `show_image` (Popup / Vollbild / Ecke, Datei·URL·Base64, auch GIF), `show_video` (mp4, Loop, Ton), `show_web` (Dashboard/Kiosk), `show_text` (klickdurchlässiges Overlay), `ask` (Dialog mit Buttons/Eingabefeld, **Antwort zurück an ioBroker**), `notify`, `close_popups`, `screenshot` (ans MQTT zurück), `set_wallpaper`, `brightness` (Laptop) |
+| **Anzeige** | `show_image` (Popup / Vollbild / Ecke, Datei·URL·Base64, auch GIF), `show_video` (mp4, Loop, Ton), `show_web` (Dashboard/Kiosk, auch als Diashow mehrerer Seiten), `show_text` (klickdurchlässiges Overlay), `ask` (Dialog mit Buttons/Eingabefeld, **Antwort zurück an ioBroker**), `notify`, `close_popups`, `screenshot` (ans MQTT zurück), `set_wallpaper`, `brightness` (Laptop) |
 | **Audio** | `volume`, `volume_change`, `mute`, `media` (Play/Pause/Next/…), `speak` (TTS mit Stimmenwahl), `list_voices`, `play_sound` (mp3/wav, URL oder Datei), `stop_sound`, `beep` |
-| **Energie** | `lock`, `sleep`, `hibernate`, `shutdown`, `restart`, `logoff`, `cancel_shutdown`, `monitor_off`, `monitor_on`, `keep_awake` |
-| **Eingabe** | `send_keys`, `type_text`, `mouse` (bewegen/klicken/scrollen), `clipboard_get`, `clipboard_set` |
+| **Energie** | `lock`, `sleep`, `hibernate`, `shutdown`, `restart`, `logoff`, `cancel_shutdown`, `monitor_off`, `monitor_on`, `screensaver`, `keep_awake` |
+| **Eingabe** | `start_menu`, `send_keys`, `type_text`, `mouse` (bewegen/klicken/scrollen), `clipboard_get`, `clipboard_set` |
 | **Überwachung** | States: Sperrstatus, Anwesenheit (`user_present`), Idle-Zeit, aktives Fenster/Prozess, Lautstärke, CPU, RAM, Uptime, Akku, Laufwerke, überwachte Prozesse (`WatchProcesses`), **Kamera/Mikrofon in Benutzung** (`webcam_in_use`, `mic_in_use` + Programmname – z. B. für eine „On Air“-Lampe) |
 | **Events** | `lock`, `unlock`, `logon`, `logoff`, `suspend`, `resume`, `remote_*` und **globale Hotkeys** (`Hotkeys` in der Config → Event `hotkey`; der PC wird zur Szenen-Tastatur) |
 

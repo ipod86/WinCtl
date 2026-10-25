@@ -2,5 +2,5 @@ using System.Reflection;
 [assembly: AssemblyTitle("WinCtl")]
 [assembly: AssemblyProduct("WinCtl")]
 [assembly: AssemblyDescription("Windows remote control agent for ioBroker / MQTT")]
-[assembly: AssemblyVersion("0.4.2.0")]
-[assembly: AssemblyFileVersion("0.4.2.0")]
+[assembly: AssemblyVersion("0.5.0.0")]
+[assembly: AssemblyFileVersion("0.5.0.0")]

@@ -158,6 +158,16 @@ namespace WinCtl
             D("cancel_shutdown", "power", "Bricht einen geplanten Shutdown/Neustart ab", c => { Exec("shutdown.exe", "/a"); return null; });
             D("monitor_off", "power", "Schaltet die Monitore aus", c => { Native.MonitorPower(false); return null; });
             D("monitor_on", "power", "Weckt die Monitore auf", c => { Native.MonitorPower(true); return null; });
+            D("screensaver", "power", "Startet den Bildschirmschoner (der in Windows eingestellte oder eine .scr-Datei)", c =>
+            {
+                string scr = c.A.Str("file", "");
+                if (scr.Length == 0) using (var k = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Control Panel\Desktop")) scr = k == null ? "" : Convert.ToString(k.GetValue("SCRNSAVE.EXE", ""));
+                if (scr.Length == 0) throw new CmdException("Kein Bildschirmschoner eingestellt (Windows-Einstellungen → Sperrbildschirm → Bildschirmschoner) und kein 'file' angegeben");
+                scr = Environment.ExpandEnvironmentVariables(scr);
+                if (!File.Exists(scr)) throw new CmdException("Bildschirmschoner nicht gefunden: " + scr);
+                Process.Start(new ProcessStartInfo(scr, "/s") { UseShellExecute = false });
+                return R("file", scr);
+            }, P("file", "string", "Pfad zu einer .scr-Datei (leer = der in Windows eingestellte)").Def("")).Prim("file");
             D("keep_awake", "power", "Verhindert Standby/Bildschirmschoner (bis auf Widerruf)", c =>
             {
                 bool on = c.A.Bool("state", true), disp = c.A.Bool("display", true);
@@ -293,8 +303,9 @@ namespace WinCtl
             D("show_video", "display", "Spielt ein Video ab (Datei oder URL, mp4/H.264 empfohlen)", c => Popups.ShowVideo(c.A),
                 new[] { P("source", "string", "Pfad oder URL").Req(), P("loop", "boolean", "Endlosschleife").Def(false), P("muted", "boolean", "Ohne Ton").Def(false), P("volume", "number", "0 - 1").Def(1),
                         P("controls", "boolean", "Bedienelemente anzeigen").Def(false), P("close_when_done", "boolean", "Nach Ende schließen").Def(true) }.Concat(PopupParams()).ToArray()).Prim("source").NeedsGui();
-            D("show_web", "display", "Zeigt eine Webseite (z.B. Dashboard, Kamera-Stream) in einem Fenster oder als Kiosk-Vollbild", c => Popups.ShowWeb(c.A),
-                new[] { P("url", "string", "Adresse").Req() }.Concat(PopupParams()).ToArray()).Prim("url").NeedsGui();
+            D("show_web", "display", "Zeigt eine Webseite (z.B. Dashboard, Kamera-Stream) in einem Fenster oder als Kiosk-Vollbild, auch mehrere im Wechsel (Diashow)", c => Popups.ShowWeb(c.A),
+                new[] { P("url", "string", "Adresse (oder 'urls' für eine Diashow)"), P("urls", "array", "Diashow: mehrere Adressen, wechseln nach 'interval' Sekunden"),
+                        P("interval", "number", "Diashow: Sekunden je Seite").Def(30) }.Concat(PopupParams()).ToArray()).Prim("url").NeedsGui();
             D("show_text", "display", "Blendet Text als Overlay ein (klickdurchlässig)", c => Popups.ShowText(c.A),
                 P("text", "string", "Text").Req(), P("seconds", "number", "Anzeigedauer").Def(5), P("size", "number", "Schriftgröße").Def(40), P("color", "string", "Textfarbe").Def("#ffffff"), P("bg", "string", "Hintergrund").Def("#202020"),
                 P("opacity", "number", "Deckkraft").Def(0.9), P("position", "string", "Lage").Of("top", "center", "bottom").Def("bottom"), P("monitor", "integer", "Monitor-Index").Def(-1),
@@ -382,6 +393,7 @@ namespace WinCtl
             }, P("level", "integer", "0 - 100").Req()).Prim("level");
 
             // ======================================================== EINGABE
+            D("start_menu", "input", "Öffnet bzw. schließt das Startmenü (Windows-Taste)", c => { Native.Key(0x5B); return null; });
             D("send_keys", "input", "Sendet Tastendrücke (SendKeys-Syntax: ^=Strg, %=Alt, +=Umschalt, {ENTER}, {F5} ...)", c => { string k = c.A.Str("keys"); Ui.Send(() => SendKeys.SendWait(k)); return null; },
                 P("keys", "string", "z.B. ^c oder %{F4} oder {ENTER}").Req()).Prim("keys").NeedsGui();
             D("type_text", "input", "Tippt Text in das aktive Fenster", c => { string t = c.A.Str("text"); Ui.Send(() => SendKeys.SendWait(EscapeKeys(t))); return null; },
@@ -429,6 +441,8 @@ namespace WinCtl
             Ex("cancel_shutdown", "true");
             Ex("monitor_off", "true");
             Ex("monitor_on", "true");
+            Ex("screensaver", "true", "{\"file\":\"C:/Windows/System32/Mystify.scr\"}");
+            Ex("start_menu", "true");
             Ex("keep_awake", "true", "{\"state\":true,\"display\":false}");
             Ex("run", "notepad", "{\"path\":\"kodi\",\"args\":\"--fullscreen\",\"window\":\"maximized\"}");
             Ex("open", "https://www.iobroker.net", "ms-settings:display");
@@ -457,6 +471,7 @@ namespace WinCtl
                "{\"source\":\"C:\\\\Videos\\\\intro.mp4\",\"mode\":\"fullscreen\",\"close_when_done\":true}");
             Ex("show_web", "http://192.168.1.5:8082/vis/",
                "{\"url\":\"http://192.168.1.5:8082/vis/\",\"mode\":\"fullscreen\"}",
+               "{\"urls\":[\"http://192.168.1.5:8082/vis/\",\"http://kamera/snapshot.jpg\"],\"interval\":20,\"mode\":\"fullscreen\"}",
                "{\"url\":\"http://kamera/stream\",\"mode\":\"corner\",\"size\":35,\"seconds\":30,\"slot\":\"kamera\"}");
             Ex("show_text", "Waschmaschine fertig",
                "{\"text\":\"Alarm!\",\"size\":60,\"color\":\"#ffffff\",\"bg\":\"#c00000\",\"position\":\"center\",\"seconds\":10}");
